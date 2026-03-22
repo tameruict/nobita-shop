@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "home": "Trang chủ",
+    "pricing": "Bảng giá",
+    "guide": "Hướng dẫn",
+    "faq": "Hỏi đáp",
+    "buyNow": "Mua ngay",
+    "login": "Đăng nhập",
+    "dashboard": "Bảng điều khiển",
+    "profile": "Tài khoản của tôi",
+    "topup": "Nạp tiền",
+    "admin": "Quản trị"
+  },
+  "hero": {
+    "badge": "Hệ thống tự động giao hàng",
+    "title1": "Mua tài khoản AI",
+    "title2": "nhanh, đẹp, dùng ngay",
+    "subtitle": "Hệ thống cung cấp tài khoản AI tự động, uy tín và ổn định nhất hiện nay. Trải nghiệm sức mạnh của AI chỉ trong 60 giây.",
+    "seePricing": "Xem bảng giá",
+    "buyNow": "Mua ngay"
+  },
+  "footer": {
+    "description": "Nền tảng cung cấp giải pháp AI Premium hàng đầu, giúp bạn tiếp cận công nghệ trí tuệ nhân tạo một cách dễ dàng và tiết kiệm nhất.",
+    "quickLinks": "Liên kết nhanh",
+    "legal": "Pháp lý",
+    "rights": "© 2024 Nobita AI. Tất cả quyền được bảo lưu."
+  },
+  "profile": {
+    "pageTitle": "Hồ sơ",
+    "pageSubtitle": "Tài khoản của tôi",
+    "orderHistory": "Lịch sử đơn hàng",
+    "noOrders": "Chưa có đơn hàng nào"
+  }
+}

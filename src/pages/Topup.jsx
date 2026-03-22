@@ -1,0 +1,361 @@
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import Header from '../components/Header'
+import Footer from '../components/Footer'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
+
+function formatVnd(amount) {
+  return new Intl.NumberFormat('vi-VN').format(amount ?? 0) + ' ₫'
+}
+
+export default function Topup() {
+  const { session, profile, refreshProfile } = useAuth()
+  
+  const [transactions, setTransactions] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
+  
+  const [amount, setAmount] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Pending request and bank info
+  const [pendingRequest, setPendingRequest] = useState(null)
+  const [bankInfo, setBankInfo] = useState({ account_number: '', account_name: '' })
+
+  const [searchParams] = useSearchParams()
+
+  const userId = session?.user?.id
+
+  // Stats
+  const [totalTopup, setTotalTopup] = useState(0)
+
+  useEffect(() => {
+    const amt = searchParams.get('amount');
+    if (amt && !isNaN(amt)) {
+      setAmount(amt);
+    }
+  }, [searchParams])
+
+  const fetchHistory = useCallback(async () => {
+    if (!userId) return
+    setLoadingHistory(true)
+    try {
+      const { data, error } = await supabase
+        .from('wallet_transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('type', 'deposit')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      
+      const txns = data || []
+      setTransactions(txns)
+      
+      const total = txns
+          .filter(t => t.status === 'completed' || !t.status)
+          .reduce((acc, curr) => acc + (curr.amount || 0), 0)
+      setTotalTopup(total)
+    } catch (err) {
+      console.error('Error fetching deposit history:', err)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }, [userId])
+
+  const fetchBankInfoAndPending = useCallback(async () => {
+    if (!userId) return
+    try {
+      // Get bank info from public RPC
+      const { data: bankData, error: bankErr } = await supabase.rpc('get_vietinbank_info')
+      if (!bankErr && bankData?.[0]) {
+        setBankInfo(bankData[0])
+      }
+
+      // Check if user has an active pending request
+      const { data: reqData, error: reqErr } = await supabase
+        .from('deposit_requests')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!reqErr && reqData) {
+        setPendingRequest(reqData)
+      }
+    } catch (err) {
+      console.error('Error fetching bank/pending info:', err)
+    }
+  }, [userId])
+
+  useEffect(() => {
+    fetchHistory()
+    fetchBankInfoAndPending()
+  }, [fetchHistory, fetchBankInfoAndPending])
+
+  const handleCreateRequest = async (e) => {
+    e.preventDefault()
+    if (!amount || isNaN(amount) || Number(amount) < 10000) {
+      alert('Vui lòng nhập số tiền hợp lệ (tối thiểu 10,000 VND).')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      // Generate a short unique deposit code: NBT + user_id prefix + random
+      const userPrefix = userId.split('-')[0].substring(0, 4).toUpperCase();
+      const code = `NBT${userPrefix}${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const req = {
+        user_id: userId,
+        deposit_code: code,
+        expected_amount: Number(amount),
+        bank_code: 'vietinbank',
+        bank_account_no: bankInfo.account_number,
+        bank_account_name: bankInfo.account_name,
+        status: 'pending'
+      }
+      
+      const { data, error } = await supabase
+        .from('deposit_requests')
+        .insert([req])
+        .select()
+        .single()
+      
+      if (error) throw error
+
+      setPendingRequest(data)
+      setAmount('')
+    } catch (err) {
+      console.error('Error creating request:', err)
+      alert('Đã có lỗi xảy ra. Hãy thử lại.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const cancelRequest = async () => {
+    if (!pendingRequest) return
+    if (!window.confirm('Bạn muốn huỷ yêu cầu nạp tiền này?')) return
+    
+    try {
+      const { error } = await supabase
+        .from('deposit_requests')
+        .update({ status: 'cancelled' })
+        .eq('id', pendingRequest.id)
+        
+      if (error) throw error
+      setPendingRequest(null)
+    } catch (err) {
+      console.error('Cancel error:', err)
+    }
+  }
+
+  const checkPayment = async () => {
+    setIsSubmitting(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('check-vietinbank', {
+        method: 'POST',
+      });
+      
+      if (error) throw error;
+      
+      if (data?.processed > 0) {
+        alert(`Đã xử lý thành công ${data.processed} yêu cầu!`);
+        fetchHistory();
+        fetchBankInfoAndPending();
+        if (refreshProfile) refreshProfile();
+      } else {
+        alert('Hệ thống chưa tìm thấy giao dịch chuyển khoản của bạn. Vui lòng đợi thêm vài phút nếu bạn vừa chuyển.');
+      }
+    } catch (err) {
+      console.error('Check error:', err);
+      alert('Đang kiểm tra giao dịch...');
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // VietQR URL builder
+  const vietQrUrl = bankInfo?.account_number 
+    ? `https://img.vietqr.io/image/vietinbank-${bankInfo.account_number}-compact2.png?amount=${pendingRequest?.expected_amount}&addInfo=${pendingRequest?.deposit_code}&accountName=${encodeURIComponent(bankInfo?.account_name || '')}`
+    : '';
+
+  return (
+    <div className="relative min-h-screen overflow-x-hidden cyber-gradient">
+      <Header />
+
+      <div className="fixed -top-24 -right-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="fixed -bottom-24 -left-20 w-96 h-96 rounded-full bg-neon-purple/10 blur-3xl pointer-events-none" />
+
+      <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20">
+        <div className="mb-10">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-bold mb-2">Top Up</p>
+          <h1 className="text-4xl font-black tracking-tight">Thêm số dư</h1>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Form / Info */}
+          <div className="lg:col-span-1 flex flex-col gap-6">
+            
+            <div className="glass-panel rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden group">
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Số dư hiện tại</span>
+                <span className="material-symbols-outlined text-primary text-lg">account_balance_wallet</span>
+              </div>
+              <p className="text-3xl font-black text-primary relative z-10">{formatVnd(profile?.balance)}</p>
+            </div>
+
+            <div className="glass-panel rounded-2xl relative overflow-hidden flex-1 border-slate-800 flex flex-col">
+               <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent" />
+               
+               {pendingRequest ? (
+                 <div className="p-6 flex flex-col items-center h-full">
+                   <h3 className="font-black text-lg text-white mb-2 text-center w-full">Chuyển khoản để nạp</h3>
+                   <p className="text-xs text-slate-400 text-center mb-6">Mở app Ngân hàng và quét mã VietQR bên dưới</p>
+
+                   {vietQrUrl && (
+                     <div className="bg-white p-2 rounded-xl mb-6 shadow-[0_0_30px_rgba(0,195,255,0.2)]">
+                       <img src={vietQrUrl} alt="VietQR Code" className="w-48 h-48 object-contain rounded-lg" />
+                     </div>
+                   )}
+
+                   <div className="w-full space-y-3 text-sm">
+                     <div className="flex justify-between border-b border-slate-800 pb-2">
+                       <span className="text-slate-400">Ngân hàng:</span>
+                       <span className="font-bold text-white">VietinBank</span>
+                     </div>
+                     <div className="flex justify-between border-b border-slate-800 pb-2">
+                       <span className="text-slate-400">Số TK:</span>
+                       <span className="font-bold text-white tracking-widest">{bankInfo?.account_number || '—'}</span>
+                     </div>
+                     <div className="flex justify-between border-b border-slate-800 pb-2">
+                       <span className="text-slate-400">Chủ TK:</span>
+                       <span className="font-bold text-white uppercase">{bankInfo?.account_name || '—'}</span>
+                     </div>
+                     <div className="flex justify-between border-b border-slate-800 pb-2">
+                       <span className="text-slate-400">Số tiền:</span>
+                       <span className="font-black text-primary">{formatVnd(pendingRequest.expected_amount)}</span>
+                     </div>
+                     <div className="flex justify-between pb-2">
+                       <span className="text-slate-400">Nội dung:</span>
+                       <span className="font-black text-neon-purple tracking-widest bg-neon-purple/20 px-2 rounded-md">{pendingRequest.deposit_code}</span>
+                     </div>
+                     <p className="text-[10px] text-red-400 text-center italic mt-2">
+                       * Bạn MUST điền chính xác nội dung chuyển khoản để được cộng tiền tự động.
+                     </p>
+                   </div>
+
+                   <div className="mt-auto pt-6 w-full space-y-3">
+                     <button
+                        onClick={checkPayment}
+                        disabled={isSubmitting}
+                        className="w-full bg-primary hover:bg-blue-500 disabled:opacity-60 text-white py-3 rounded-xl font-bold tracking-wide transition-all neon-border-cyan flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(37,123,244,0.3)]"
+                      >
+                        {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : 'Tôi đã chuyển khoản'}
+                     </button>
+                     <button
+                        onClick={cancelRequest}
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl font-bold text-sm transition-all border border-slate-700 hover:text-white"
+                      >
+                        Đổi số tiền khác
+                     </button>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="p-6 flex flex-col h-full">
+                   <h3 className="font-black text-lg text-white mb-6">Tạo yêu cầu nạp</h3>
+                   <form onSubmit={handleCreateRequest} className="space-y-4">
+                     <div>
+                        <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">Số tiền cần nạp (VND)</label>
+                        <input
+                          type="number"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          required
+                          min="10000"
+                          step="10000"
+                          className="w-full font-bold rounded-xl bg-[#0a0e14]/90 border border-slate-700/60 px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
+                          placeholder="Tối thiểu: 10,000"
+                        />
+                     </div>
+                     <div className="pt-2 text-xs text-slate-400 space-y-2">
+                        <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> Nạp tự động 24/7</div>
+                        <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> Hỗ trợ mã QR tiện lợi</div>
+                     </div>
+                     <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full mt-4 rounded-xl bg-primary hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 font-bold tracking-wide transition-all neon-border-cyan flex justify-center items-center gap-2"
+                      >
+                        {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : 'Tạo mã nạp'}
+                      </button>
+                   </form>
+                 </div>
+               )}
+            </div>
+          </div>
+
+          {/* Right Column: History */}
+          <div className="lg:col-span-2">
+            <div className="glass-panel rounded-2xl relative overflow-hidden min-h-full">
+               <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-green-500 to-transparent" />
+               <div className="px-6 py-5 border-b border-slate-800/60 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-green-400">history</span>
+                    <h2 className="text-lg font-black tracking-tight">Lịch sử nạp tiền</h2>
+                  </div>
+                  <span className="text-xs text-slate-500 font-mono">Tổng: {formatVnd(totalTopup)}</span>
+               </div>
+               
+               <div className="p-0">
+                  {loadingHistory ? (
+                    <div className="flex justify-center items-center py-16 text-primary">
+                      <span className="material-symbols-outlined animate-spin text-4xl">sync</span>
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <div className="flex flex-col items-center py-20 gap-5">
+                      <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-3xl text-slate-600">receipt_long</span>
+                      </div>
+                      <p className="text-slate-400 text-sm">Chưa có giao dịch nạp tiền nào.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-800/50">
+                      {transactions.map(tx => (
+                        <div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-800/30 transition-colors">
+                           <div className="flex items-center gap-4">
+                             <div className="size-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400">
+                               <span className="material-symbols-outlined">payments</span>
+                             </div>
+                             <div>
+                               <p className="font-bold text-white text-sm">Nạp tiền vào ví</p>
+                               <p className="text-xs text-slate-400">{new Date(tx.created_at).toLocaleString()}</p>
+                             </div>
+                           </div>
+                           <div className="text-right">
+                             <p className="font-black text-green-400">+{formatVnd(tx.amount)}</p>
+                             {tx.status && (
+                               <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border inline-block mt-0.5
+                                 ${tx.status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/30' : 
+                                   tx.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/30' : 
+                                   'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'}`}>
+                                 {tx.status}
+                               </span>
+                             )}
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+               </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  )
+}

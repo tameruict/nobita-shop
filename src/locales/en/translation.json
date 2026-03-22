@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "home": "Home",
+    "pricing": "Pricing",
+    "guide": "Guide",
+    "faq": "FAQ",
+    "buyNow": "Buy Now",
+    "login": "Login",
+    "dashboard": "Dashboard",
+    "profile": "My Profile",
+    "topup": "Top Up",
+    "admin": "Admin"
+  },
+  "hero": {
+    "badge": "Automated Delivery System",
+    "title1": "Buy premium AI accounts",
+    "title2": "fast, beautiful, use instantly",
+    "subtitle": "The most reliable and stable automated AI system today. Experience the power of AI in just 60 seconds.",
+    "seePricing": "See Pricing",
+    "buyNow": "Buy Now"
+  },
+  "footer": {
+    "description": "Leading premium AI solution platform, helping you access artificial intelligence technology easily and cost-effectively.",
+    "quickLinks": "Quick Links",
+    "legal": "Legal",
+    "rights": "© 2024 Nobita AI. All rights reserved."
+  },
+  "profile": {
+    "pageTitle": "Profile",
+    "pageSubtitle": "My Account",
+    "orderHistory": "Order History",
+    "noOrders": "No orders yet"
+  }
+}
