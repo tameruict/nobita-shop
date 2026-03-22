@@ -31,7 +31,7 @@ function StatusBadge({ status }) {
 
 export default function Profile() {
   const { t } = useTranslation()
-  const { session, profile } = useAuth()
+  const { session, profile, refreshProfile } = useAuth()
 
   const [orders, setOrders] = useState([])
   const [totalTopup, setTotalTopup] = useState(0)
@@ -39,6 +39,34 @@ export default function Profile() {
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [loadingWallet, setLoadingWallet] = useState(true)
   const [expandedOrder, setExpandedOrder] = useState(null)
+
+  const [chatgptGmailInput, setChatgptGmailInput] = useState('')
+  const [savingConfig, setSavingConfig] = useState(false)
+
+  useEffect(() => {
+    if (profile?.chatgpt_gmail) {
+      setChatgptGmailInput(profile.chatgpt_gmail)
+    }
+  }, [profile?.chatgpt_gmail])
+
+  const handleSaveServiceConfig = async () => {
+    if (!chatgptGmailInput || !chatgptGmailInput.includes('@')) {
+      alert('Vui lòng nhập Email hợp lệ.')
+      return
+    }
+    setSavingConfig(true)
+    try {
+      const { error } = await supabase.from('profiles').update({ chatgpt_gmail: chatgptGmailInput }).eq('id', session?.user?.id)
+      if (error) throw error
+      alert('Cập nhật cấu hình dịch vụ thành công!')
+      if (refreshProfile) await refreshProfile()
+    } catch (err) {
+      console.error('Update service config error:', err)
+      alert('Có lỗi xảy ra, vui lòng thử lại sau.')
+    } finally {
+      setSavingConfig(false)
+    }
+  }
 
   const userId = session?.user?.id
 
@@ -49,18 +77,8 @@ export default function Profile() {
       const { data, error } = await supabase
         .from('orders')
         .select(`
-          id,
-          order_code,
-          total_amount,
-          status,
-          created_at,
-          order_items (
-            id,
-            quantity,
-            unit_price,
-            line_total,
-            products ( name )
-          )
+          *,
+          products:product_id (name)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -208,6 +226,49 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* Service Configuration (chatgpt_gmail) */}
+        <div className="glass-panel rounded-2xl p-6 mb-10 relative overflow-hidden border border-slate-800/60 shadow-lg">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+          <div className="flex items-center gap-3 mb-5">
+            <span className="material-symbols-outlined text-cyan-400">settings_applications</span>
+            <h2 className="text-xl font-black tracking-tight text-white">{t('profile.serviceConfig', 'Cấu hình dịch vụ')}</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-slate-900/40 p-5 rounded-xl border border-slate-800/50">
+              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">mail</span>
+                Gmail nhận quyền dịch vụ (Manual)
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  value={chatgptGmailInput}
+                  onChange={(e) => setChatgptGmailInput(e.target.value)}
+                  placeholder="Nhập email ưu tiên của bạn..."
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-cyan-400 transition-colors placeholder:text-slate-600"
+                />
+                <button
+                  onClick={handleSaveServiceConfig}
+                  disabled={savingConfig}
+                  className="px-6 py-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold border border-cyan-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 sm:w-auto w-full"
+                >
+                  {savingConfig ? (
+                    <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">save</span>
+                      Lưu lại
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="mt-3 text-xs text-slate-500 leading-relaxed">
+                * Email này sẽ được dùng mặc định để Admin cấp quyền cho các dịch vụ được xử lý thủ công (Manual Delivery). Vui lòng đảm bảo bạn nhập đúng địa chỉ.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Order History */}
         <div className="glass-panel rounded-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-neon-purple to-transparent" />
@@ -262,9 +323,11 @@ export default function Profile() {
                           <span className="material-symbols-outlined text-primary text-base">receipt</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="font-bold text-white text-sm font-mono">{order.order_code}</p>
+                          <p className="font-bold text-white text-sm truncate mr-4">
+                            {order.products?.name || 'Sản phẩm'}
+                          </p>
                           <p className="text-xs text-slate-400 mt-0.5">
-                            {new Date(order.created_at).toLocaleDateString('en-US', {
+                            {new Date(order.created_at).toLocaleDateString('vi-VN', {
                               year: 'numeric', month: 'short', day: 'numeric',
                               hour: '2-digit', minute: '2-digit'
                             })}
@@ -274,7 +337,7 @@ export default function Profile() {
 
                       <div className="flex items-center gap-4 flex-shrink-0 self-end sm:self-auto">
                         <StatusBadge status={order.status} />
-                        <p className="font-black text-primary text-sm">{formatVnd(order.total_amount)}</p>
+                        <p className="font-black text-primary text-sm">{formatVnd(order.total_amount || order.amount)}</p>
                         <span className={`material-symbols-outlined text-slate-400 text-base transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
                           expand_more
                         </span>
@@ -283,25 +346,20 @@ export default function Profile() {
 
                     {/* Expanded items */}
                     {isExpanded && (
-                      <div className="px-6 pb-5 bg-slate-900/40">
-                        <div className="border border-slate-700/40 rounded-xl overflow-hidden">
-                          <div className="px-4 py-3 bg-slate-800/50 text-[10px] uppercase tracking-widest text-slate-400 font-bold grid grid-cols-12">
-                            <span className="col-span-6">Product</span>
-                            <span className="col-span-2 text-center">Qty</span>
-                            <span className="col-span-2 text-right">Unit Price</span>
-                            <span className="col-span-2 text-right">Total</span>
-                          </div>
-                          {(order.order_items ?? []).map(item => (
-                            <div key={item.id} className="px-4 py-3 grid grid-cols-12 text-sm border-t border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                              <span className="col-span-6 text-white font-medium truncate pr-3">{item.products?.name || '—'}</span>
-                              <span className="col-span-2 text-center text-slate-300">{item.quantity}</span>
-                              <span className="col-span-2 text-right text-slate-300 font-mono text-xs">{formatVnd(item.unit_price)}</span>
-                              <span className="col-span-2 text-right text-primary font-bold font-mono text-xs">{formatVnd(item.line_total)}</span>
-                            </div>
-                          ))}
-                          {(order.order_items ?? []).length === 0 && (
-                            <div className="px-4 py-4 text-center text-slate-500 text-sm">No items recorded.</div>
-                          )}
+                      <div className="px-6 pb-5 bg-slate-900/40 animate-in slide-in-from-top-1">
+                        <div className="p-4 bg-slate-800/50 border border-slate-700/40 rounded-xl space-y-3">
+                           <div className="flex flex-col gap-1">
+                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Chi tiết / Thông tin bàn giao</span>
+                              <div className="text-white text-sm bg-slate-900/80 p-3 rounded-lg border border-slate-700/50 font-mono break-words whitespace-pre-wrap">
+                                 {order.delivery_data || order.extra_info || 'Đang chờ xử lý...'}
+                              </div>
+                           </div>
+                           {order.status === 'completed' && (
+                             <p className="text-xs text-green-400 flex items-center gap-1">
+                               <span className="material-symbols-outlined text-sm">verified</span>
+                               Đơn hàng đã được bàn giao thành công.
+                             </p>
+                           )}
                         </div>
                       </div>
                     )}

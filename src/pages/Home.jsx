@@ -1,59 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabase, hasSupabaseConfig } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import PurchaseModal from '../components/PurchaseModal';
 
 const EXCHANGE_RATE_VND_TO_USD = 25000;
 
-const pricingPlans = [
-  {
-    id: 'business-slot',
-    name: 'Business',
-    priceVnd: 40000,
-    unitLabel: 'slot',
-    warranty: 'No warranty',
-    isFeatured: false,
-    notes: ['1 slot', 'Monthly package'],
-  },
-  {
-    id: 'admin-business-no-warranty',
-    name: 'Admin Business',
-    priceVnd: 70000,
-    unitLabel: 'slot',
-    warranty: 'No warranty',
-    isFeatured: false,
-    notes: ['Add up to 5 members', 'Monthly package'],
-  },
-  {
-    id: 'admin-business-warranty',
-    name: 'Admin Business',
-    priceVnd: 90000,
-    unitLabel: 'slot',
-    warranty: 'Warranty included',
-    isFeatured: true,
-    notes: ['Add up to 5 members', 'Monthly package'],
-  },
-  {
-    id: 'chatgpt-plus-no-warranty',
-    name: 'ChatGPT Plus',
-    priceVnd: 50000,
-    unitLabel: 'account',
-    warranty: 'No warranty',
-    isFeatured: false,
-    notes: ['1 account', 'Monthly package'],
-  },
-  {
-    id: 'chatgpt-plus-warranty',
-    name: 'ChatGPT Plus',
-    priceVnd: 80000,
-    unitLabel: 'account',
-    warranty: 'Warranty included',
-    isFeatured: false,
-    notes: ['1 account', 'Monthly package'],
-  },
-];
+
 
 function formatPrice(priceVnd, currency) {
   if (currency === 'usd') {
@@ -90,9 +46,24 @@ function getPlanPlacementClass(index, totalPlans) {
 export default function Home() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { session, profile } = useAuth();
+  
   const [currency, setCurrency] = useState('vnd');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // States for Direct Payment Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+
+  const handleBuyClick = (product) => {
+    if (!session) {
+      navigate('/login');
+      return;
+    }
+    setSelectedPlan(product);
+    setIsModalOpen(true);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -100,7 +71,6 @@ export default function Home() {
     async function fetchProducts() {
       if (!hasSupabaseConfig) {
         if (isMounted) {
-          setProducts(pricingPlans);
           setLoading(false);
         }
         return;
@@ -109,7 +79,7 @@ export default function Home() {
       try {
         const { data, error } = await supabase
           .from('products')
-          .select('*')
+          .select('*, delivery_type')
           .eq('is_active', true)
           .order('price', { ascending: true });
 
@@ -119,13 +89,18 @@ export default function Home() {
           const formattedProducts = data.map((p) => ({
             id: p.id,
             name: p.name,
+            price: p.price,
             priceVnd: p.price,
-            unitLabel: p.product_type === 'sharing_account' ? 'slot' : 'account',
-            warranty: String(p.slug || '').includes('no-warranty') ? 'No warranty' : 'Warranty included',
-            isFeatured: p.slug === 'admin-business-5-slots-warranty',
-            notes: p.short_description
-              ? p.short_description.split(',').map((s) => s.trim()).filter(Boolean)
-              : ['Monthly package'],
+            category: p.category,
+            stock_count: p.stock_count,
+            image_url: p.image_url,
+            delivery_type: p.delivery_type,
+            unitLabel: p.delivery_type === 'manual' ? 'slot' : 'account',
+            warranty: 'Warranty included',
+            isFeatured: p.delivery_type === 'manual',
+            notes: p.description
+              ? p.description.split(',').map((s) => s.trim()).filter(Boolean)
+              : ['Instant Delivery', 'Premium Support'],
           }));
 
           if (isMounted) {
@@ -133,13 +108,13 @@ export default function Home() {
           }
         } else {
           if (isMounted) {
-            setProducts(pricingPlans);
+            setProducts([]);
           }
         }
       } catch (err) {
         console.error('Error fetching products:', err);
         if (isMounted) {
-          setProducts(pricingPlans);
+          setProducts([]);
         }
       } finally {
         if (isMounted) {
@@ -179,9 +154,9 @@ export default function Home() {
             </p>
             
             <div className="flex flex-wrap gap-4">
-              <a href="#pricing" className="px-8 py-4 bg-primary text-white font-bold rounded-xl hover:scale-105 transition-transform flex items-center gap-2">
+              <Link to="/#pricing" className="px-8 py-4 bg-primary text-white font-bold rounded-xl hover:scale-105 transition-transform flex items-center gap-2">
                 {t('hero.seePricing')} <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </a>
+              </Link>
               <button className="px-8 py-4 glass text-white font-bold rounded-xl hover:bg-white/5 transition-colors border border-white/20">
                 {t('hero.buyNow')}
               </button>
@@ -296,7 +271,7 @@ export default function Home() {
               </ul>
 
               <button 
-                onClick={() => navigate(`/topup?amount=${plan.priceVnd}`)}
+                onClick={() => handleBuyClick(plan)}
                 className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:scale-[1.02] transition-all neon-border-cyan"
               >
                 {i18n.language === 'vi' ? 'Mua ngay' : 'Buy Monthly Plan'}
@@ -306,6 +281,16 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      <PurchaseModal 
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedPlan(null);
+        }}
+        product={selectedPlan}
+        profile={profile}
+      />
 
       <Footer />
     </div>

@@ -5,6 +5,8 @@ import AdminDashboard from './pages/AdminDashboard'
 import AdminUsers from './pages/AdminUsers'
 import AdminDeposits from './pages/AdminDeposits'
 import AdminBankSettings from './pages/AdminBankSettings'
+import AdminProducts from './pages/AdminProducts'
+import AdminOrders from './pages/AdminOrders'
 import Profile from './pages/Profile'
 import Topup from './pages/Topup'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -23,6 +25,8 @@ function App() {
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/deposits" element={<AdminDeposits />} />
         <Route path="/admin/bank-settings" element={<AdminBankSettings />} />
+        <Route path="/admin/products" element={<AdminProducts />} />
+        <Route path="/admin/orders" element={<AdminOrders />} />
       </Route>
 
       {/* Authenticated user routes */}

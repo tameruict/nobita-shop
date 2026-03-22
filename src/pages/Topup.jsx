@@ -66,10 +66,16 @@ export default function Topup() {
   const fetchBankInfoAndPending = useCallback(async () => {
     if (!userId) return
     try {
-      // Get bank info from public RPC
-      const { data: bankData, error: bankErr } = await supabase.rpc('get_vietinbank_info')
+      // Get bank info, try to use get_vietcombank_info if available, else fallback
+      const { data: bankData, error: bankErr } = await supabase.rpc('get_vietcombank_info')
       if (!bankErr && bankData?.[0]) {
         setBankInfo(bankData[0])
+      } else {
+        // Fallback to get_vietinbank_info (in case the RPC hasn't been updated yet)
+        const { data: vtData, error: vtErr } = await supabase.rpc('get_vietinbank_info')
+        if (!vtErr && vtData?.[0]) {
+           setBankInfo(vtData[0])
+        }
       }
 
       // Check if user has an active pending request
@@ -104,15 +110,15 @@ export default function Topup() {
 
     setIsSubmitting(true)
     try {
-      // Generate a short unique deposit code: NBT + user_id prefix + random
+      // Generate a short unique deposit code
       const userPrefix = userId.split('-')[0].substring(0, 4).toUpperCase();
-      const code = `NBT${userPrefix}${Math.floor(1000 + Math.random() * 9000)}`;
+      const code = `tai lieu ai NBT${userPrefix}${Math.floor(1000 + Math.random() * 9000)}`;
 
       const req = {
         user_id: userId,
         deposit_code: code,
         expected_amount: Number(amount),
-        bank_code: 'vietinbank',
+        bank_code: 'vietcombank',
         bank_account_no: bankInfo.account_number,
         bank_account_name: bankInfo.account_name,
         status: 'pending'
@@ -156,7 +162,7 @@ export default function Topup() {
   const checkPayment = async () => {
     setIsSubmitting(true)
     try {
-      const { data, error } = await supabase.functions.invoke('check-vietinbank', {
+      const { data, error } = await supabase.functions.invoke('check-payment', {
         method: 'POST',
       });
       
@@ -178,9 +184,12 @@ export default function Topup() {
     }
   }
 
-  // VietQR URL builder
-  const vietQrUrl = bankInfo?.account_number 
-    ? `https://img.vietqr.io/image/vietinbank-${bankInfo.account_number}-compact2.png?amount=${pendingRequest?.expected_amount}&addInfo=${pendingRequest?.deposit_code}&accountName=${encodeURIComponent(bankInfo?.account_name || '')}`
+  // VietQR URL builder (vietcombank) with fallback if DB info is missing
+  const bankAccount = bankInfo?.account_number || '0000000000';
+  const bankName = bankInfo?.account_name || 'CHUA CAI DAT TEN';
+  
+  const vietQrUrl = pendingRequest 
+    ? `https://img.vietqr.io/image/vietcombank-${bankAccount}-compact2.png?amount=${pendingRequest?.expected_amount}&addInfo=${encodeURIComponent(pendingRequest?.deposit_code)}&accountName=${encodeURIComponent(bankName)}`
     : '';
 
   return (
@@ -208,99 +217,106 @@ export default function Topup() {
               <p className="text-3xl font-black text-primary relative z-10">{formatVnd(profile?.balance)}</p>
             </div>
 
-            <div className="glass-panel rounded-2xl relative overflow-hidden flex-1 border-slate-800 flex flex-col">
+            <div className="glass-panel rounded-2xl relative overflow-hidden flex-1 border-slate-800 flex flex-col p-6">
                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent" />
-               
-               {pendingRequest ? (
-                 <div className="p-6 flex flex-col items-center h-full">
-                   <h3 className="font-black text-lg text-white mb-2 text-center w-full">Chuyển khoản để nạp</h3>
-                   <p className="text-xs text-slate-400 text-center mb-6">Mở app Ngân hàng và quét mã VietQR bên dưới</p>
-
-                   {vietQrUrl && (
-                     <div className="bg-white p-2 rounded-xl mb-6 shadow-[0_0_30px_rgba(0,195,255,0.2)]">
-                       <img src={vietQrUrl} alt="VietQR Code" className="w-48 h-48 object-contain rounded-lg" />
-                     </div>
-                   )}
-
-                   <div className="w-full space-y-3 text-sm">
-                     <div className="flex justify-between border-b border-slate-800 pb-2">
-                       <span className="text-slate-400">Ngân hàng:</span>
-                       <span className="font-bold text-white">VietinBank</span>
-                     </div>
-                     <div className="flex justify-between border-b border-slate-800 pb-2">
-                       <span className="text-slate-400">Số TK:</span>
-                       <span className="font-bold text-white tracking-widest">{bankInfo?.account_number || '—'}</span>
-                     </div>
-                     <div className="flex justify-between border-b border-slate-800 pb-2">
-                       <span className="text-slate-400">Chủ TK:</span>
-                       <span className="font-bold text-white uppercase">{bankInfo?.account_name || '—'}</span>
-                     </div>
-                     <div className="flex justify-between border-b border-slate-800 pb-2">
-                       <span className="text-slate-400">Số tiền:</span>
-                       <span className="font-black text-primary">{formatVnd(pendingRequest.expected_amount)}</span>
-                     </div>
-                     <div className="flex justify-between pb-2">
-                       <span className="text-slate-400">Nội dung:</span>
-                       <span className="font-black text-neon-purple tracking-widest bg-neon-purple/20 px-2 rounded-md">{pendingRequest.deposit_code}</span>
-                     </div>
-                     <p className="text-[10px] text-red-400 text-center italic mt-2">
-                       * Bạn MUST điền chính xác nội dung chuyển khoản để được cộng tiền tự động.
-                     </p>
-                   </div>
-
-                   <div className="mt-auto pt-6 w-full space-y-3">
-                     <button
-                        onClick={checkPayment}
-                        disabled={isSubmitting}
-                        className="w-full bg-primary hover:bg-blue-500 disabled:opacity-60 text-white py-3 rounded-xl font-bold tracking-wide transition-all neon-border-cyan flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(37,123,244,0.3)]"
-                      >
-                        {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : 'Tôi đã chuyển khoản'}
-                     </button>
-                     <button
-                        onClick={cancelRequest}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl font-bold text-sm transition-all border border-slate-700 hover:text-white"
-                      >
-                        Đổi số tiền khác
-                     </button>
-                   </div>
+               <h3 className="font-black text-lg text-white mb-6">Tạo yêu cầu nạp</h3>
+               <form onSubmit={handleCreateRequest} className="space-y-4 flex flex-col h-full">
+                 <div>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">Số tiền cần nạp (VND)</label>
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      required
+                      min="10000"
+                      step="10000"
+                      className="w-full font-bold rounded-xl bg-[#0a0e14]/90 border border-slate-700/60 px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
+                      placeholder="Tối thiểu: 10,000"
+                    />
                  </div>
-               ) : (
-                 <div className="p-6 flex flex-col h-full">
-                   <h3 className="font-black text-lg text-white mb-6">Tạo yêu cầu nạp</h3>
-                   <form onSubmit={handleCreateRequest} className="space-y-4">
-                     <div>
-                        <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">Số tiền cần nạp (VND)</label>
-                        <input
-                          type="number"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          required
-                          min="10000"
-                          step="10000"
-                          className="w-full font-bold rounded-xl bg-[#0a0e14]/90 border border-slate-700/60 px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
-                          placeholder="Tối thiểu: 10,000"
-                        />
-                     </div>
-                     <div className="pt-2 text-xs text-slate-400 space-y-2">
-                        <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> Nạp tự động 24/7</div>
-                        <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> Hỗ trợ mã QR tiện lợi</div>
-                     </div>
-                     <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full mt-4 rounded-xl bg-primary hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 font-bold tracking-wide transition-all neon-border-cyan flex justify-center items-center gap-2"
-                      >
-                        {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : 'Tạo mã nạp'}
-                      </button>
-                   </form>
+                 <div className="pt-2 text-xs text-slate-400 space-y-2">
+                    <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> Nạp tự động 24/7</div>
+                    <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> Hỗ trợ mã QR tiện lợi</div>
                  </div>
-               )}
+                 <div className="mt-auto pt-6">
+                   <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full rounded-xl bg-primary hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 font-bold tracking-wide transition-all neon-border-cyan flex justify-center items-center gap-2"
+                    >
+                      {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : 'Tạo mã QR chuyển tiền ngay'}
+                    </button>
+                 </div>
+               </form>
             </div>
           </div>
 
-          {/* Right Column: History */}
-          <div className="lg:col-span-2">
-            <div className="glass-panel rounded-2xl relative overflow-hidden min-h-full">
+          {/* Right Column: QR and History */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            
+            {/* View QR Code Panel */}
+            {pendingRequest && (
+              <div className="glass-panel rounded-2xl p-6 relative border-slate-800 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent" />
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-black text-xl text-white mb-1">Chuyển khoản để nạp</h3>
+                    <p className="text-xs text-slate-400">Mở app Ngân hàng và quét mã VietQR bên dưới</p>
+                  </div>
+                  <button onClick={cancelRequest} className="text-slate-500 hover:text-red-400 transition-colors" title="Hủy yêu cầu">
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-8 items-start">
+                  {vietQrUrl && (
+                    <div className="bg-white p-2 rounded-xl shadow-[0_0_30px_rgba(0,195,255,0.2)] shrink-0 mx-auto md:mx-0">
+                      <img src={vietQrUrl} alt="VietQR Code" className="w-56 h-56 object-contain rounded-lg" />
+                    </div>
+                  )}
+                  
+                  <div className="flex-1 w-full flex flex-col justify-between h-full space-y-4">
+                    <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-800 text-sm space-y-3">
+                      <div className="flex justify-between border-b border-slate-800 pb-2">
+                        <span className="text-slate-400">Ngân hàng:</span>
+                        <span className="font-bold text-white">Vietcombank</span>
+                      </div>
+                      <div className="flex justify-between border-b border-slate-800 pb-2">
+                        <span className="text-slate-400">Số TK:</span>
+                        <span className="font-bold text-white tracking-widest">{bankInfo?.account_number || 'Lỗi: Chưa cài đặt'}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-slate-800 pb-2">
+                        <span className="text-slate-400">Chủ TK:</span>
+                        <span className="font-bold text-white uppercase">{bankInfo?.account_name || 'Lỗi'}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-slate-800 pb-2">
+                        <span className="text-slate-400">Số tiền:</span>
+                        <span className="font-black text-primary">{formatVnd(pendingRequest.expected_amount)}</span>
+                      </div>
+                      <div className="flex justify-between pb-2">
+                        <span className="text-slate-400">Nội dung:</span>
+                        <span className="font-black text-neon-purple tracking-widest bg-neon-purple/20 px-2 rounded-md">{pendingRequest.deposit_code}</span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-[11px] text-red-400 italic text-center md:text-left">
+                      * Bạn BẮT BUỘC ĐIỀN CHÍNH XÁC nội dung chuyển khoản để tự động cộng tiền.
+                    </p>
+
+                    <button
+                       onClick={checkPayment}
+                       disabled={isSubmitting}
+                       className="w-full bg-primary hover:bg-blue-500 disabled:opacity-60 text-white py-3.5 rounded-xl font-bold tracking-wide transition-all neon-border-cyan flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(37,123,244,0.3)] mt-2"
+                     >
+                       {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : 'Tôi đã chuyển khoản thành công'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* History Panel */}
+            <div className="glass-panel rounded-2xl relative overflow-hidden flex-1">
                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-green-500 to-transparent" />
                <div className="px-6 py-5 border-b border-slate-800/60 flex items-center justify-between">
                   <div className="flex items-center gap-3">

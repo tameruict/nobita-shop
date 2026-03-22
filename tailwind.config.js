@@ -15,8 +15,7 @@ export default {
         "neon-cyan": "#00f3ff",
       },
       fontFamily: {
-        "display": ["Kalam", "Space Grotesk", "sans-serif"],
-        "kalam": ["Kalam", "cursive"],
+        "display": ["Iosevka Charon Mono", "monospace"],
       },
       borderRadius: {
         "DEFAULT": "0.25rem",

@@ -2,16 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import AdminSidebar from '../components/AdminSidebar';
 
 export default function AdminUsers() {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
 
-  const handleLogout = async (e) => {
-    e.preventDefault();
-    await signOut();
-    navigate('/login');
-  };
+
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -97,40 +94,7 @@ export default function AdminUsers() {
   return (
     <div className="bg-background-dark min-h-screen text-slate-100 font-display flex border-t border-neon-purple/20">
       {/* Sidebar */}
-      <aside className="w-64 glass-panel border-r border-slate-800 min-h-screen p-6 flex flex-col gap-8">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="size-8 text-primary bg-primary/10 rounded-lg flex items-center justify-center neon-border-cyan">
-            <span className="material-symbols-outlined text-sm">bolt</span>
-          </div>
-          <h2 className="text-xl font-bold tracking-tight">Admin<span className="text-primary">Panel</span></h2>
-        </Link>
-
-        {profile && (
-          <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400">
-            <p className="text-white font-semibold truncate">{profile.full_name || 'Admin'}</p>
-            <p className="truncate">{profile.email}</p>
-          </div>
-        )}
-
-        <nav className="flex flex-col gap-2 flex-1">
-          <Link to="/admin" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition-all">
-            <span className="material-symbols-outlined">dashboard</span>
-            Dashboard
-          </Link>
-          <Link to="/admin/users" className="flex items-center gap-3 px-4 py-3 bg-neon-purple/20 text-neon-purple rounded-xl font-bold transition-all neon-border-purple">
-            <span className="material-symbols-outlined">group</span>
-            Users
-          </Link>
-          <Link to="/admin/deposits" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition-all">
-            <span className="material-symbols-outlined">payments</span>
-            Deposits
-          </Link>
-        </nav>
-        <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition-all">
-          <span className="material-symbols-outlined">logout</span>
-          Logout
-        </button>
-      </aside>
+      <AdminSidebar />
 
 
       {/* Main Content */}

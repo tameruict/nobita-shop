@@ -63,15 +63,15 @@ export default function Header() {
           <Link className="text-sm font-medium hover:text-primary transition-colors text-white" to="/">
             {t('nav.home')}
           </Link>
-          <a className="text-sm font-medium hover:text-primary transition-colors text-white" href="#pricing">
+          <Link className="text-sm font-medium hover:text-primary transition-colors text-white" to="/#pricing">
             {t('nav.pricing')}
-          </a>
-          <a className="text-sm font-medium hover:text-primary transition-colors text-white" href="#guide">
+          </Link>
+          <Link className="text-sm font-medium hover:text-primary transition-colors text-white" to="/#guide">
             {t('nav.guide')}
-          </a>
-          <a className="text-sm font-medium hover:text-primary transition-colors text-white" href="#faq">
+          </Link>
+          <Link className="text-sm font-medium hover:text-primary transition-colors text-white" to="/#faq">
             {t('nav.faq')}
-          </a>
+          </Link>
         </div>
 
         {/* Right area */}

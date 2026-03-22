@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import AdminSidebar from '../components/AdminSidebar';
 
 export default function AdminBankSettings() {
   const navigate = useNavigate();
@@ -16,17 +17,13 @@ export default function AdminBankSettings() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
 
-  const handleLogout = async (e) => {
-    e.preventDefault();
-    await signOut();
-    navigate('/login');
-  };
+
 
   const fetchSettings = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('vietinbank_settings')
+        .from('bank_setting')
         .select('*')
         .eq('id', 1)
         .single();
@@ -60,7 +57,7 @@ export default function AdminBankSettings() {
     
     try {
       const { error } = await supabase
-        .from('vietinbank_settings')
+        .from('bank_setting')
         .upsert({ 
           id: 1, 
           account_name: accountName,
@@ -85,44 +82,7 @@ export default function AdminBankSettings() {
   return (
     <div className="bg-background-dark min-h-screen text-slate-100 font-display flex border-t border-blue-500/20">
       {/* Sidebar */}
-      <aside className="w-64 glass-panel border-r border-slate-800 min-h-screen p-6 flex flex-col gap-8 flex-shrink-0 z-20 relative">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="size-8 text-primary bg-primary/10 rounded-lg flex items-center justify-center neon-border-cyan">
-            <span className="material-symbols-outlined text-sm">bolt</span>
-          </div>
-          <h2 className="text-xl font-bold tracking-tight">Admin<span className="text-primary">Panel</span></h2>
-        </Link>
-
-        {profile && (
-          <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400">
-            <p className="text-white font-semibold truncate">{profile.full_name || 'Admin'}</p>
-            <p className="truncate">{profile.email}</p>
-          </div>
-        )}
-
-        <nav className="flex flex-col gap-2 flex-1">
-          <Link to="/admin" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition-all">
-            <span className="material-symbols-outlined">dashboard</span>
-            Dashboard
-          </Link>
-          <Link to="/admin/users" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition-all">
-            <span className="material-symbols-outlined">group</span>
-            Users
-          </Link>
-          <Link to="/admin/deposits" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition-all">
-            <span className="material-symbols-outlined">payments</span>
-            Deposits
-          </Link>
-          <Link to="/admin/bank-settings" className="flex items-center gap-3 px-4 py-3 bg-blue-500/20 text-blue-400 rounded-xl font-bold transition-all border border-blue-500/30">
-            <span className="material-symbols-outlined">account_balance</span>
-            Bank API
-          </Link>
-        </nav>
-        <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition-all">
-          <span className="material-symbols-outlined">logout</span>
-          Logout
-        </button>
-      </aside>
+      <AdminSidebar />
 
       {/* Main Content */}
       <main className="flex-1 p-10 overflow-y-auto relative z-10 w-full">

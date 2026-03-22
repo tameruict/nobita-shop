@@ -45,6 +45,7 @@ function toSafeProfile(sessionUser, dbProfile) {
     balance: dbProfile?.balance ?? 0,
     is_active: dbProfile?.is_active ?? true,
     created_at: dbProfile?.created_at || sessionUser.created_at || null,
+    chatgpt_gmail: dbProfile?.chatgpt_gmail || null,
   }
 }
 
@@ -61,7 +62,7 @@ export function AuthProvider({ children }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, role, balance, is_active, created_at')
+        .select('id, email, full_name, role, balance, is_active, created_at, chatgpt_gmail')
         .eq('id', userId)
         .maybeSingle()
 
@@ -85,7 +86,7 @@ export function AuthProvider({ children }) {
 
     const fallbackProfile = toSafeProfile(nextSession.user, null)
     if (requestId === applySessionRequestRef.current) {
-      setProfile(fallbackProfile)
+      setProfile(prev => prev?.id === nextSession.user.id ? prev : fallbackProfile)
     }
 
     const syncDbProfile = async () => {

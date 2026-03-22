@@ -18,33 +18,33 @@ export default function Footer() {
             {t('footer.description')}
           </p>
           <div className="flex gap-4">
-            <a className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-primary/20 transition-all text-slate-300" href="#">
+            <Link className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-primary/20 transition-all text-slate-300" to="#">
               <span className="material-symbols-outlined text-lg">send</span>
-            </a>
-            <a className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-primary/20 transition-all text-slate-300" href="#">
+            </Link>
+            <Link className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-primary/20 transition-all text-slate-300" to="#">
               <span className="material-symbols-outlined text-lg">chat_bubble</span>
-            </a>
-            <a className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-primary/20 transition-all text-slate-300" href="#">
+            </Link>
+            <Link className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-primary/20 transition-all text-slate-300" to="#">
               <span className="material-symbols-outlined text-lg">public</span>
-            </a>
+            </Link>
           </div>
         </div>
         <div>
           <h5 className="text-white font-bold mb-6">{t('footer.quickLinks')}</h5>
           <ul className="space-y-4 text-sm text-slate-400">
-            <li><a className="hover:text-primary transition-colors" href="#">{t('nav.pricing')} Details</a></li>
-            <li><a className="hover:text-primary transition-colors" href="#">API Documentation</a></li>
-            <li><a className="hover:text-primary transition-colors" href="#">Blog & News</a></li>
-            <li><a className="hover:text-primary transition-colors" href="#">Affiliate Program</a></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">{t('nav.pricing')} Details</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">API Documentation</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">Blog & News</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">Affiliate Program</Link></li>
           </ul>
         </div>
         <div>
           <h5 className="text-white font-bold mb-6">{t('footer.legal')}</h5>
           <ul className="space-y-4 text-sm text-slate-400">
-            <li><a className="hover:text-primary transition-colors" href="#">Privacy Policy</a></li>
-            <li><a className="hover:text-primary transition-colors" href="#">Terms of Service</a></li>
-            <li><a className="hover:text-primary transition-colors" href="#">Refund Policy</a></li>
-            <li><a className="hover:text-primary transition-colors" href="#">Contact Us</a></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">Privacy Policy</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">Terms of Service</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">Refund Policy</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">Contact Us</Link></li>
           </ul>
         </div>
       </div>
