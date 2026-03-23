@@ -12,7 +12,7 @@ export default function Footer() {
             <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
               <span className="material-symbols-outlined text-white text-sm">bolt</span>
             </div>
-            <span className="text-xl font-bold text-white">Nobita AI</span>
+            <span className="text-xl font-bold text-white">{t('footer.brandName')}</span>
           </div>
           <p className="text-slate-400 max-w-sm text-sm leading-relaxed">
             {t('footer.description')}
@@ -32,19 +32,19 @@ export default function Footer() {
         <div>
           <h5 className="text-white font-bold mb-6">{t('footer.quickLinks')}</h5>
           <ul className="space-y-4 text-sm text-slate-400">
-            <li><Link className="hover:text-primary transition-colors" to="#">{t('nav.pricing')} Details</Link></li>
-            <li><Link className="hover:text-primary transition-colors" to="#">API Documentation</Link></li>
-            <li><Link className="hover:text-primary transition-colors" to="#">Blog & News</Link></li>
-            <li><Link className="hover:text-primary transition-colors" to="#">Affiliate Program</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">{t('footer.pricingDetails')}</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">{t('footer.apiDocs')}</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">{t('footer.blog')}</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">{t('footer.affiliate')}</Link></li>
           </ul>
         </div>
         <div>
           <h5 className="text-white font-bold mb-6">{t('footer.legal')}</h5>
           <ul className="space-y-4 text-sm text-slate-400">
-            <li><Link className="hover:text-primary transition-colors" to="#">Privacy Policy</Link></li>
-            <li><Link className="hover:text-primary transition-colors" to="#">Terms of Service</Link></li>
-            <li><Link className="hover:text-primary transition-colors" to="#">Refund Policy</Link></li>
-            <li><Link className="hover:text-primary transition-colors" to="#">Contact Us</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">{t('footer.privacy')}</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">{t('footer.terms')}</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">{t('footer.refund')}</Link></li>
+            <li><Link className="hover:text-primary transition-colors" to="#">{t('footer.contact')}</Link></li>
           </ul>
         </div>
       </div>

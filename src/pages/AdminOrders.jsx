@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import AdminSidebar from '../components/AdminSidebar';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminOrders() {
+  const { t, i18n } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,18 +33,18 @@ export default function AdminOrders() {
   }, []);
 
   const handleApprove = async (order) => {
-    if (!window.confirm(`Approve order for ${order.profiles?.full_name}?`)) return;
+    if (!window.confirm(t('admin.orders.approveConfirm', { name: order.profiles?.full_name }))) return;
 
     try {
       // 1. Check user balance
       if (order.profiles.balance < order.amount) {
-        alert("User does not have enough balance!");
+        alert(t('admin.orders.lowBalance'));
         return;
       }
 
       const deliveryType = order.products?.delivery_type || 'auto';
 
-      let deliveredContent = 'Service Activated automatically by admin';
+      let deliveredContent = t('admin.orders.approvedFulfilled');
       
       if (deliveryType === 'auto') {
         const { data: items, error: itemError } = await supabase
@@ -64,12 +66,12 @@ export default function AdminOrders() {
              await supabase.from('products').update({ stock_count: Math.max(0, prod.stock_count - 1) }).eq('id', order.product_id);
           }
         } else {
-           alert("No items in stock for this product!");
+           alert(t('admin.orders.noStock'));
            return;
         }
       } else {
         // Manual (e.g. GPT Business)
-        deliveredContent = `Quyền truy cập đã được cấp cho Gmail: ${order.profiles.chatgpt_gmail || 'Không rõ'}`;
+        deliveredContent = t('profile.activationEmailLabel') + `: ${order.profiles.chatgpt_gmail || '-'}`;
       }
 
       // 3. Deduct balance
@@ -93,15 +95,15 @@ export default function AdminOrders() {
 
       if (orderUpdateError) throw orderUpdateError;
 
-      alert("Order Approved & Fulfilled!");
+      alert(t('admin.orders.approvedFulfilled'));
       fetchOrders();
     } catch (err) {
-      alert("Approval error: " + err.message);
+      alert(t('admin.orders.approvalError') + err.message);
     }
   };
 
   const handleReject = async (id) => {
-     if (!window.confirm("Reject this order?")) return;
+     if (!window.confirm(t('admin.orders.rejectConfirm'))) return;
      await supabase.from('orders').update({ status: 'rejected' }).eq('id', id);
      fetchOrders();
   };
@@ -123,8 +125,8 @@ export default function AdminOrders() {
         <div className="fixed inset-0 cyber-grid pointer-events-none opacity-50"></div>
 
         <header className="mb-10 relative z-10">
-          <h1 className="text-3xl font-black tracking-tight mb-2">Order Management</h1>
-          <p className="text-slate-400 text-sm">Review and approve customer purchases.</p>
+          <h1 className="text-3xl font-black tracking-tight mb-2">{t('admin.orders.title')}</h1>
+          <p className="text-slate-400 text-sm">{t('admin.orders.subtitle')}</p>
         </header>
 
         <div className="glass-panel rounded-2xl border-slate-800 relative z-10 overflow-hidden">
@@ -137,13 +139,13 @@ export default function AdminOrders() {
               <table className="w-full text-left text-sm">
                 <thead className="text-xs uppercase bg-slate-800/40 text-slate-400 font-bold tracking-wider">
                   <tr>
-                    <th className="px-6 py-4">Customer</th>
-                    <th className="px-6 py-4">Product</th>
-                    <th className="px-6 py-4">Amount</th>
-                    <th className="px-6 py-4">Delivery</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Details/Gmail</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <th className="px-6 py-4">{t('admin.orders.customer')}</th>
+                    <th className="px-6 py-4">{t('admin.orders.product')}</th>
+                    <th className="px-6 py-4">{t('admin.orders.amount')}</th>
+                    <th className="px-6 py-4">{t('admin.orders.delivery')}</th>
+                    <th className="px-6 py-4">{t('admin.orders.status')}</th>
+                    <th className="px-6 py-4">{t('admin.orders.details')}</th>
+                    <th className="px-6 py-4 text-right">{t('admin.orders.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
@@ -157,16 +159,16 @@ export default function AdminOrders() {
                         <span className="font-semibold text-slate-200">{order.products?.name}</span>
                       </td>
                       <td className="px-6 py-4 font-black text-primary">
-                        {new Intl.NumberFormat('vi-VN').format(order.amount)} ₫
+                        {new Intl.NumberFormat(i18n.language === 'vi' ? 'vi-VN' : 'en-US').format(order.amount)} {i18n.language === 'vi' ? '₫' : 'VND'}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${order.products?.delivery_type === 'manual' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'}`}>
-                          {order.products?.delivery_type || 'auto'}
+                          {order.products?.delivery_type === 'manual' ? t('admin.products.typeManual') : t('admin.products.typeAuto')}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${getStatusColor(order.status)}`}>
-                          {order.status}
+                          {t(`common.status.${order.status}`)}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -178,7 +180,7 @@ export default function AdminOrders() {
                               <button 
                                 onClick={() => {
                                   navigator.clipboard.writeText(order.profiles.chatgpt_gmail);
-                                  alert('Đã copy Gmail: ' + order.profiles.chatgpt_gmail);
+                                  alert(t('admin.orders.copySuccess') + order.profiles.chatgpt_gmail);
                                 }}
                                 className="hover:text-white transition-colors ml-1"
                                 title="Copy Gmail"
@@ -199,13 +201,13 @@ export default function AdminOrders() {
                               onClick={() => handleApprove(order)}
                               className="bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-green-500/30"
                             >
-                               Approve
+                               {t('admin.orders.approve')}
                             </button>
                             <button 
                               onClick={() => handleReject(order.id)}
                               className="bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-red-500/30"
                             >
-                               Reject
+                               {t('admin.orders.reject')}
                             </button>
                           </div>
                         )}
@@ -214,7 +216,7 @@ export default function AdminOrders() {
                   ))}
                   {orders.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="px-6 py-8 text-center text-slate-500">No orders found.</td>
+                      <td colSpan="7" className="px-6 py-8 text-center text-slate-500">{t('admin.orders.noOrders')}</td>
                     </tr>
                   )}
                 </tbody>

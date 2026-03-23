@@ -67,7 +67,7 @@ export default function Login() {
           password,
           fullName: fullName.trim(),
         })
-        setSuccessMsg('Account created! Please check your email to verify your account.')
+        setSuccessMsg(t('auth.success.created'))
         setIsRegistering(false)
         setPassword('')
       } else {
@@ -78,10 +78,10 @@ export default function Login() {
         navigate(getPostLoginPath(profile, session), { replace: true })
       }
     } catch (err) {
-      const message = err?.message || 'Authentication failed. Please try again.'
+      const message = err?.message || t('auth.errors.failed')
       if (isRegistering) {
         if (message.toLowerCase().includes('already registered')) {
-          setError('An account with this email already exists. Please sign in.')
+          setError(t('auth.errors.alreadyExists'))
           setIsRegistering(false)
           return
         }
@@ -106,7 +106,7 @@ export default function Login() {
     try {
       await signInWithGoogle()
     } catch (err) {
-      setError(err?.message || 'Google login failed. Please try again.')
+      setError(err?.message || t('auth.errors.googleFailed'))
       setLoading(false)
     }
   }
@@ -137,7 +137,7 @@ export default function Login() {
           <div className="size-10 rounded-xl bg-primary/10 border border-primary/30 text-primary flex items-center justify-center group-hover:neon-border-cyan transition-all">
             <span className="material-symbols-outlined">bolt</span>
           </div>
-          <span className="text-xl font-black tracking-tight">Nobita AI</span>
+          <span className="text-xl font-black tracking-tight">{t('nav.nobitaAi')}</span>
         </Link>
 
         <div className="flex items-center gap-3">
@@ -159,7 +159,7 @@ export default function Login() {
             </button>
           </div>
           <Link to="/" className="text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-colors">
-            Back Home
+            {t('auth.backHome')}
           </Link>
         </div>
       </header>
@@ -167,29 +167,29 @@ export default function Login() {
       <main className="relative z-10 w-full max-w-6xl mx-auto px-4 pb-10 pt-4 lg:pt-10">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
           {/* Left panel */}
-          <section className="hidden lg:flex glass-panel rounded-2xl border border-slate-700/60 p-8 xl:p-10 flex-col justify-between shadow-[0_0_40px_rgba(37,123,244,0.08)]">
+           <section className="hidden lg:flex glass-panel rounded-2xl border border-slate-700/60 p-8 xl:p-10 flex-col justify-between shadow-[0_0_40px_rgba(37,123,244,0.08)]">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-bold mb-5">Secure Access</p>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-bold mb-5">{t('auth.secureAccess')}</p>
               <h1 className="text-4xl leading-tight font-black mb-5">
-                Welcome to <span className="text-primary">Nobita AI</span>
+                {t('auth.welcomeTitle')}
               </h1>
               <p className="text-slate-300/90 leading-relaxed">
-                Sign in with your email or Google account to access premium AI tools — fast, reliable, and delivered instantly.
+                {t('auth.welcomeSubtitle')}
               </p>
             </div>
 
             <ul className="space-y-4 mt-10 text-sm">
               <li className="flex gap-3">
                 <span className="material-symbols-outlined text-primary">shield_lock</span>
-                <span>Session persists across page reloads automatically.</span>
+                <span>{t('auth.features.session')}</span>
               </li>
               <li className="flex gap-3">
                 <span className="material-symbols-outlined text-primary">manage_accounts</span>
-                <span>Admins go to dashboard; regular users go to profile.</span>
+                <span>{t('auth.features.roles')}</span>
               </li>
               <li className="flex gap-3">
                 <span className="material-symbols-outlined text-primary">tune</span>
-                <span>Clear error messages when configuration is missing.</span>
+                <span>{t('auth.features.errors')}</span>
               </li>
             </ul>
           </section>
@@ -200,10 +200,10 @@ export default function Login() {
 
             <div className="mb-8">
               <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-bold mb-2">
-                {isRegistering ? 'Create account' : 'Welcome back'}
+                {isRegistering ? t('auth.createAccount') : t('auth.welcomeBack')}
               </p>
               <h2 className="text-3xl font-black tracking-tight">
-                {isRegistering ? 'Register' : 'Sign in'}
+                {isRegistering ? t('auth.register') : t('auth.login')}
               </h2>
             </div>
 
@@ -228,20 +228,20 @@ export default function Login() {
             <form onSubmit={handleAuth} className="space-y-4">
               {isRegistering && (
                 <div>
-                  <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">Full Name</label>
+                  <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">{t('auth.fullNameLabel')}</label>
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required={isRegistering}
                     className="w-full rounded-xl bg-[#0a0e14]/90 border border-slate-700/60 px-4 py-3.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50"
-                    placeholder="John Doe"
+                    placeholder={t('auth.fullNamePlaceholder')}
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">Email</label>
+                <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">{t('auth.emailLabel')}</label>
                 <input
                   type="email"
                   value={email}
@@ -249,12 +249,12 @@ export default function Login() {
                   required
                   autoComplete="email"
                   className="w-full rounded-xl bg-[#0a0e14]/90 border border-slate-700/60 px-4 py-3.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50"
-                  placeholder="name@domain.com"
+                  placeholder={t('auth.emailPlaceholder')}
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">Password</label>
+                <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">{t('auth.passwordLabel')}</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -264,7 +264,7 @@ export default function Login() {
                     minLength={6}
                     autoComplete={isRegistering ? 'new-password' : 'current-password'}
                     className="w-full rounded-xl bg-[#0a0e14]/90 border border-slate-700/60 px-4 py-3.5 pr-11 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50"
-                    placeholder="At least 6 characters"
+                    placeholder={t('auth.passwordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -283,13 +283,13 @@ export default function Login() {
                 disabled={loading || !hasAuthConfig}
                 className="w-full mt-2 rounded-xl bg-primary hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3.5 font-bold tracking-wide transition-all neon-border-cyan"
               >
-                {loading ? 'Processing...' : isRegistering ? 'Create Account' : 'Sign In'}
+                {loading ? t('auth.processing') : isRegistering ? t('auth.createAccount') : t('auth.login')}
               </button>
             </form>
 
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-slate-700" />
-              <span className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Or</span>
+              <span className="text-[11px] uppercase tracking-[0.2em] text-slate-500">{t('common.or')}</span>
               <div className="h-px flex-1 bg-slate-700" />
             </div>
 
@@ -300,13 +300,13 @@ export default function Login() {
               className="w-full rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/30 disabled:opacity-60 disabled:cursor-not-allowed py-3.5 font-semibold transition-all flex items-center justify-center gap-2.5"
             >
               <GoogleIcon />
-              Continue with Google
+              {t('auth.googleLogin')}
             </button>
 
             <p className="mt-8 text-center text-sm text-slate-400">
-              {isRegistering ? 'Already have an account?' : 'Need an account?'}{' '}
+              {isRegistering ? t('auth.alreadyHaveAccount') : t('auth.needAccount')}{' '}
               <button type="button" onClick={switchMode} className="font-bold text-primary hover:text-white transition-colors">
-                {isRegistering ? 'Sign in now' : 'Create one'}
+                {isRegistering ? t('auth.signInNow') : t('auth.createOne')}
               </button>
             </p>
           </section>

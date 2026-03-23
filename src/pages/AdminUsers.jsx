@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import AdminSidebar from '../components/AdminSidebar';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminUsers() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
 
@@ -73,7 +75,7 @@ export default function AdminUsers() {
   };
 
   const deleteUser = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    if (!window.confirm(t('admin.users.deleteConfirm'))) return;
     try {
       // In Supabase, usually deleting a user from `profiles` might trigger error if foreign keys exist,
       // or it might automatically delete if ON DELETE CASCADE is set for `auth.users`, but we can only 
@@ -87,7 +89,7 @@ export default function AdminUsers() {
       setUsers(users.filter(u => u.id !== id));
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Cannot delete user. It may be linked to existing transactions.');
+      alert(t('admin.users.deleteError'));
     }
   };
 
@@ -104,12 +106,12 @@ export default function AdminUsers() {
         
         <header className="flex justify-between items-center mb-10 relative z-10">
           <div>
-            <h1 className="text-3xl font-black tracking-tight mb-2">User Management</h1>
-            <p className="text-slate-400 text-sm">Create, edit, and manage system accounts</p>
+            <h1 className="text-3xl font-black tracking-tight mb-2">{t('admin.users.title')}</h1>
+            <p className="text-slate-400 text-sm">{t('admin.users.subtitle')}</p>
           </div>
           <button className="bg-primary text-white px-4 py-2 font-bold rounded-lg flex items-center gap-2 neon-border-cyan hover:scale-105 transition-all">
             <span className="material-symbols-outlined text-[18px]">person_add</span>
-            Add User
+            {t('admin.users.addBtn')}
           </button>
         </header>
 
@@ -119,7 +121,7 @@ export default function AdminUsers() {
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
               <input 
                 type="text" 
-                placeholder="Search users..." 
+                placeholder={t('admin.users.searchPlaceholder')} 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary outline-none text-white placeholder-slate-500"
@@ -138,11 +140,11 @@ export default function AdminUsers() {
               <table className="w-full text-left text-sm">
                 <thead className="text-xs uppercase bg-slate-800/40 text-slate-400 font-bold tracking-wider">
                   <tr>
-                    <th className="px-6 py-4">User</th>
-                    <th className="px-6 py-4">Role</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Created Date</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <th className="px-6 py-4">{t('admin.users.user')}</th>
+                    <th className="px-6 py-4">{t('admin.users.role')}</th>
+                    <th className="px-6 py-4">{t('admin.users.status')}</th>
+                    <th className="px-6 py-4">{t('admin.users.createdDate')}</th>
+                    <th className="px-6 py-4 text-right">{t('admin.users.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
@@ -167,7 +169,7 @@ export default function AdminUsers() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className={`size-2 rounded-full ${user.is_active ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                          <span className="capitalize">{user.is_active ? 'Active' : 'Disabled'}</span>
+                          <span className="capitalize">{user.is_active ? t('admin.users.active') : t('admin.users.disabled')}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-slate-400">
@@ -190,7 +192,7 @@ export default function AdminUsers() {
                   ))}
                   {filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="px-6 py-8 text-center text-slate-500">No users found.</td>
+                      <td colSpan="5" className="px-6 py-8 text-center text-slate-500">{t('admin.users.noUsers')}</td>
                     </tr>
                   )}
                 </tbody>

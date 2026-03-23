@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
-function formatVnd(amount) {
-  return new Intl.NumberFormat('vi-VN').format(amount ?? 0) + ' ₫'
+function formatVnd(amount, lng = 'vi') {
+  return new Intl.NumberFormat(lng === 'vi' ? 'vi-VN' : 'en-US').format(amount ?? 0) + (lng === 'vi' ? ' ₫' : ' VND')
 }
 
 export default function Topup() {
+  const { t, i18n } = useTranslation()
   const { session, profile, refreshProfile } = useAuth()
   
   const [transactions, setTransactions] = useState([])
@@ -104,7 +106,7 @@ export default function Topup() {
   const handleCreateRequest = async (e) => {
     e.preventDefault()
     if (!amount || isNaN(amount) || Number(amount) < 10000) {
-      alert('Vui lòng nhập số tiền hợp lệ (tối thiểu 10,000 VND).')
+      alert(t('topup.alerts.invalidAmount'))
       return
     }
 
@@ -136,7 +138,7 @@ export default function Topup() {
       setAmount('')
     } catch (err) {
       console.error('Error creating request:', err)
-      alert('Đã có lỗi xảy ra. Hãy thử lại.')
+      alert(t('topup.alerts.error'))
     } finally {
       setIsSubmitting(false)
     }
@@ -144,7 +146,7 @@ export default function Topup() {
 
   const cancelRequest = async () => {
     if (!pendingRequest) return
-    if (!window.confirm('Bạn muốn huỷ yêu cầu nạp tiền này?')) return
+    if (!window.confirm(t('topup.alerts.cancelConfirm'))) return
     
     try {
       const { error } = await supabase
@@ -169,16 +171,16 @@ export default function Topup() {
       if (error) throw error;
       
       if (data?.processed > 0) {
-        alert(`Đã xử lý thành công ${data.processed} yêu cầu!`);
+        alert(t('topup.alerts.processSuccess', { count: data.processed }));
         fetchHistory();
         fetchBankInfoAndPending();
         if (refreshProfile) refreshProfile();
       } else {
-        alert('Hệ thống chưa tìm thấy giao dịch chuyển khoản của bạn. Vui lòng đợi thêm vài phút nếu bạn vừa chuyển.');
+        alert(t('topup.alerts.noTransactionFound'));
       }
     } catch (err) {
       console.error('Check error:', err);
-      alert('Đang kiểm tra giao dịch...');
+      alert(t('topup.alerts.checking'));
     } finally {
       setIsSubmitting(false)
     }
@@ -201,8 +203,8 @@ export default function Topup() {
 
       <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20">
         <div className="mb-10">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-bold mb-2">Top Up</p>
-          <h1 className="text-4xl font-black tracking-tight">Thêm số dư</h1>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-bold mb-2">{t('topup.pageSubtitle')}</p>
+          <h1 className="text-4xl font-black tracking-tight">{t('topup.pageTitle')}</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -211,18 +213,18 @@ export default function Topup() {
             
             <div className="glass-panel rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden group">
               <div className="flex items-center justify-between relative z-10">
-                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Số dư hiện tại</span>
+                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">{t('topup.currentBalance')}</span>
                 <span className="material-symbols-outlined text-primary text-lg">account_balance_wallet</span>
               </div>
-              <p className="text-3xl font-black text-primary relative z-10">{formatVnd(profile?.balance)}</p>
+              <p className="text-3xl font-black text-primary relative z-10">{formatVnd(profile?.balance, i18n.language)}</p>
             </div>
 
             <div className="glass-panel rounded-2xl relative overflow-hidden flex-1 border-slate-800 flex flex-col p-6">
                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent" />
-               <h3 className="font-black text-lg text-white mb-6">Tạo yêu cầu nạp</h3>
+               <h3 className="font-black text-lg text-white mb-6">{t('topup.createRequest')}</h3>
                <form onSubmit={handleCreateRequest} className="space-y-4 flex flex-col h-full">
                  <div>
-                    <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">Số tiền cần nạp (VND)</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-slate-400 mb-1.5">{t('topup.amountLabel')}</label>
                     <input
                       type="number"
                       value={amount}
@@ -231,12 +233,12 @@ export default function Topup() {
                       min="10000"
                       step="10000"
                       className="w-full font-bold rounded-xl bg-[#0a0e14]/90 border border-slate-700/60 px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
-                      placeholder="Tối thiểu: 10,000"
+                      placeholder={t('topup.amountPlaceholder')}
                     />
                  </div>
                  <div className="pt-2 text-xs text-slate-400 space-y-2">
-                    <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> Nạp tự động 24/7</div>
-                    <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> Hỗ trợ mã QR tiện lợi</div>
+                    <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> {t('topup.autoSupport')}</div>
+                    <div className="flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-green-400">check_circle</span> {t('topup.qrSupport')}</div>
                  </div>
                  <div className="mt-auto pt-6">
                    <button
@@ -244,7 +246,7 @@ export default function Topup() {
                       disabled={isSubmitting}
                       className="w-full rounded-xl bg-primary hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 font-bold tracking-wide transition-all neon-border-cyan flex justify-center items-center gap-2"
                     >
-                      {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : 'Tạo mã QR chuyển tiền ngay'}
+                      {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : t('topup.generateQr')}
                     </button>
                  </div>
                </form>
@@ -260,10 +262,10 @@ export default function Topup() {
                 <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent" />
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="font-black text-xl text-white mb-1">Chuyển khoản để nạp</h3>
-                    <p className="text-xs text-slate-400">Mở app Ngân hàng và quét mã VietQR bên dưới</p>
+                    <h3 className="font-black text-xl text-white mb-1">{t('topup.transferToTopup')}</h3>
+                    <p className="text-xs text-slate-400">{t('topup.scanQrDesc')}</p>
                   </div>
-                  <button onClick={cancelRequest} className="text-slate-500 hover:text-red-400 transition-colors" title="Hủy yêu cầu">
+                  <button onClick={cancelRequest} className="text-slate-500 hover:text-red-400 transition-colors" title={t('topup.cancelRequest')}>
                     <span className="material-symbols-outlined">close</span>
                   </button>
                 </div>
@@ -278,29 +280,29 @@ export default function Topup() {
                   <div className="flex-1 w-full flex flex-col justify-between h-full space-y-4">
                     <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-800 text-sm space-y-3">
                       <div className="flex justify-between border-b border-slate-800 pb-2">
-                        <span className="text-slate-400">Ngân hàng:</span>
+                        <span className="text-slate-400">{t('topup.bankName')}:</span>
                         <span className="font-bold text-white">Vietcombank</span>
                       </div>
                       <div className="flex justify-between border-b border-slate-800 pb-2">
-                        <span className="text-slate-400">Số TK:</span>
-                        <span className="font-bold text-white tracking-widest">{bankInfo?.account_number || 'Lỗi: Chưa cài đặt'}</span>
+                        <span className="text-slate-400">{t('topup.accountNumber')}:</span>
+                        <span className="font-bold text-white tracking-widest">{bankInfo?.account_number || t('admin.bank.notUpdated')}</span>
                       </div>
                       <div className="flex justify-between border-b border-slate-800 pb-2">
-                        <span className="text-slate-400">Chủ TK:</span>
-                        <span className="font-bold text-white uppercase">{bankInfo?.account_name || 'Lỗi'}</span>
+                        <span className="text-slate-400">{t('topup.accountName')}:</span>
+                        <span className="font-bold text-white uppercase">{bankInfo?.account_name || t('common.error')}</span>
                       </div>
                       <div className="flex justify-between border-b border-slate-800 pb-2">
-                        <span className="text-slate-400">Số tiền:</span>
-                        <span className="font-black text-primary">{formatVnd(pendingRequest.expected_amount)}</span>
+                        <span className="text-slate-400">{t('topup.amount')}:</span>
+                        <span className="font-black text-primary">{formatVnd(pendingRequest.expected_amount, i18n.language)}</span>
                       </div>
                       <div className="flex justify-between pb-2">
-                        <span className="text-slate-400">Nội dung:</span>
+                        <span className="text-slate-400">{t('topup.content')}:</span>
                         <span className="font-black text-neon-purple tracking-widest bg-neon-purple/20 px-2 rounded-md">{pendingRequest.deposit_code}</span>
                       </div>
                     </div>
                     
                     <p className="text-[11px] text-red-400 italic text-center md:text-left">
-                      * Bạn BẮT BUỘC ĐIỀN CHÍNH XÁC nội dung chuyển khoản để tự động cộng tiền.
+                      {t('topup.mandatoryContent')}
                     </p>
 
                     <button
@@ -308,7 +310,7 @@ export default function Topup() {
                        disabled={isSubmitting}
                        className="w-full bg-primary hover:bg-blue-500 disabled:opacity-60 text-white py-3.5 rounded-xl font-bold tracking-wide transition-all neon-border-cyan flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(37,123,244,0.3)] mt-2"
                      >
-                       {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : 'Tôi đã chuyển khoản thành công'}
+                       {isSubmitting ? <span className="material-symbols-outlined animate-spin">sync</span> : t('topup.confirmSuccess')}
                     </button>
                   </div>
                 </div>
@@ -321,9 +323,9 @@ export default function Topup() {
                <div className="px-6 py-5 border-b border-slate-800/60 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-green-400">history</span>
-                    <h2 className="text-lg font-black tracking-tight">Lịch sử nạp tiền</h2>
+                    <h2 className="text-lg font-black tracking-tight">{t('topup.historyTitle')}</h2>
                   </div>
-                  <span className="text-xs text-slate-500 font-mono">Tổng: {formatVnd(totalTopup)}</span>
+                  <span className="text-xs text-slate-500 font-mono">{t('topup.historyTotal')}: {formatVnd(totalTopup, i18n.language)}</span>
                </div>
                
                <div className="p-0">
@@ -336,7 +338,7 @@ export default function Topup() {
                       <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center">
                         <span className="material-symbols-outlined text-3xl text-slate-600">receipt_long</span>
                       </div>
-                      <p className="text-slate-400 text-sm">Chưa có giao dịch nạp tiền nào.</p>
+                      <p className="text-slate-400 text-sm">{t('topup.noHistory')}</p>
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-800/50">
@@ -347,18 +349,18 @@ export default function Topup() {
                                <span className="material-symbols-outlined">payments</span>
                              </div>
                              <div>
-                               <p className="font-bold text-white text-sm">Nạp tiền vào ví</p>
+                               <p className="font-bold text-white text-sm">{t('topup.walletTopup')}</p>
                                <p className="text-xs text-slate-400">{new Date(tx.created_at).toLocaleString()}</p>
                              </div>
                            </div>
                            <div className="text-right">
-                             <p className="font-black text-green-400">+{formatVnd(tx.amount)}</p>
+                             <p className="font-black text-green-400">+{formatVnd(tx.amount, i18n.language)}</p>
                              {tx.status && (
                                <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border inline-block mt-0.5
                                  ${tx.status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/30' : 
                                    tx.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/30' : 
                                    'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'}`}>
-                                 {tx.status}
+                                 {t(`common.status.${tx.status}`)}
                                </span>
                              )}
                            </div>

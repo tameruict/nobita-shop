@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
-function formatVnd(amount) {
-  return new Intl.NumberFormat('vi-VN').format(amount ?? 0) + ' ₫';
+function formatVnd(amount, lng = 'vi') {
+  return new Intl.NumberFormat(lng === 'vi' ? 'vi-VN' : 'en-US').format(amount ?? 0) + (lng === 'vi' ? ' ₫' : ' VND');
 }
 
 export default function PurchaseModal({ isOpen, onClose, product, profile }) {
+  const { t, i18n } = useTranslation();
   const [extraInfo, setExtraInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -19,7 +21,7 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
 
   const handleConfirm = async () => {
     if (deliveryType === 'manual' && !profile?.chatgpt_gmail) {
-      alert("Vui lòng cập nhật Gmail nhận quyền trong phần Hồ Sơ (Profile) trước khi mua hàng!");
+      alert(t('purchase.updateGmailRequired'));
       return;
     }
 
@@ -35,7 +37,7 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
 
         if (itemError) throw itemError;
         if (!items || items.length === 0) {
-          alert("Sản phẩm này hiện đang hết hàng. Vui lòng quay lại sau!");
+          alert(t('purchase.outOfStock'));
           setIsSubmitting(false);
           return;
         }
@@ -62,7 +64,7 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
           product_id: product.id,
           amount: product.price,
           status: 'completed',
-          extra_info: 'Giao hàng tự động',
+          extra_info: t('pricing.instantDelivery'),
           delivery_data: item.content
         }]);
 
@@ -76,14 +78,14 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
           product_id: product.id,
           amount: product.price,
           status: 'pending',
-          extra_info: `Gmail đăng ký: ${profile.chatgpt_gmail}`
+          extra_info: t('purchase.gmailRegistration', { gmail: profile.chatgpt_gmail })
         }]);
 
         if (error) throw error;
         setSuccess(true);
       }
     } catch (err) {
-      alert("Lỗi khi tạo đơn hàng: " + err.message);
+      alert(t('purchase.createOrderError') + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -101,7 +103,7 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
       <div className="bg-[#0f1115] border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         
         <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-          <h3 className="font-bold text-white tracking-wide">Xác nhận mua hàng</h3>
+          <h3 className="font-bold text-white tracking-wide">{t('purchase.confirmTitle')}</h3>
           <button onClick={resetAndClose} className="text-slate-400 hover:text-white transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -115,22 +117,22 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
               </div>
               {deliveryType === 'auto' && deliveryData ? (
                 <>
-                  <h2 className="text-2xl font-black text-white">Thanh toán thành công!</h2>
+                  <h2 className="text-2xl font-black text-white">{t('purchase.paymentSuccess')}</h2>
                   <div className="text-left mt-6">
-                    <p className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-widest">Thông tin tài khoản của bạn:</p>
+                    <p className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-widest">{t('purchase.yourAccountInfo')}</p>
                     <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl text-white font-mono text-sm whitespace-pre-wrap break-words">
                       {deliveryData}
                     </div>
                   </div>
                   <p className="text-slate-400 text-xs mt-4">
-                    Thông tin này cũng đã được lưu vào Lịch sử mua hàng của bạn.
+                    {t('purchase.savedHistory')}
                   </p>
                 </>
               ) : (
                 <>
-                  <h2 className="text-2xl font-black text-white">Đã gửi yêu cầu!</h2>
+                  <h2 className="text-2xl font-black text-white">{t('purchase.requestSent')}</h2>
                   <p className="text-slate-400 text-sm">
-                    Đơn hàng của bạn đang chờ duyệt. Vui lòng kiểm tra lịch sử đơn hàng sau ít phút.
+                    {t('purchase.pendingApproval')}
                   </p>
                 </>
               )}
@@ -138,7 +140,7 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
                 onClick={resetAndClose}
                 className="w-full bg-primary text-white font-bold py-3 rounded-xl mt-4"
               >
-                Đóng
+                {t('purchase.close')}
               </button>
             </div>
           ) : (
@@ -146,19 +148,19 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="text-xl font-black text-white">{product.name}</h4>
-                  <p className="text-primary font-black text-lg">{formatVnd(product.price)}</p>
+                  <p className="text-primary font-black text-lg">{formatVnd(product.price, i18n.language)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">Số dư của bạn</p>
+                  <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">{t('purchase.yourBalance')}</p>
                   <p className={`font-black ${canAfford ? 'text-green-400' : 'text-red-500'}`}>
-                    {formatVnd(profile?.balance)}
+                    {formatVnd(profile?.balance, i18n.language)}
                   </p>
                 </div>
               </div>
 
               {deliveryType === 'manual' && (
                 <div className="space-y-2 bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Gmail nhận quyền</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('purchase.gmailLabel')}</span>
                   {profile?.chatgpt_gmail ? (
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-green-400">check_circle</span>
@@ -168,19 +170,19 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-2 text-red-400 text-sm">
                         <span className="material-symbols-outlined">warning</span>
-                        <span>Bạn chưa cấu hình Gmail cung cấp dịch vụ.</span>
+                        <span>{t('purchase.noGmailWarning')}</span>
                       </div>
                       <Link 
                         to="/profile" 
                         onClick={() => onClose()}
                         className="w-full text-center py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg text-sm transition-colors border border-slate-600"
                       >
-                        Đến trang Cấu hình
+                        {t('purchase.configButton')}
                       </Link>
                     </div>
                   )}
                   <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                    * Sản phẩm này cần Admin cấp quyền thủ công (tối đa 24h). Vui lòng đảm bảo bạn đã cấu hình đúng Gmail ở trang Profile.
+                    {t('purchase.manualDeliveryHint')}
                   </p>
                 </div>
               )}
@@ -189,13 +191,13 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
                 <div className="space-y-4">
                   <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3">
                     <span className="material-symbols-outlined">warning</span>
-                    Bạn không đủ số dư để mua sản phẩm này.
+                    {t('purchase.insufficientBalance')}
                   </div>
                   <Link 
                     to="/topup"
                     className="block w-full text-center py-4 bg-primary text-white font-black rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
                   >
-                    Nạp tiền ngay
+                    {t('purchase.topupNow')}
                   </Link>
                 </div>
               ) : (
@@ -204,7 +206,7 @@ export default function PurchaseModal({ isOpen, onClose, product, profile }) {
                   disabled={isSubmitting}
                   className="w-full py-4 bg-primary text-white font-black rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
+                  {isSubmitting ? t('common.processing') : t('purchase.confirmPayment')}
                 </button>
               )}
             </div>

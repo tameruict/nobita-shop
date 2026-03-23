@@ -1,7 +1,9 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminSidebar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, signOut } = useAuth();
@@ -13,12 +15,12 @@ export default function AdminSidebar() {
   };
 
   const menuItems = [
-    { path: '/admin', label: 'Dashboard', icon: 'dashboard', color: 'slate' },
-    { path: '/admin/users', label: 'Users', icon: 'group', color: 'slate' },
-    { path: '/admin/products', label: 'Products', icon: 'inventory_2', color: 'blue' },
-    { path: '/admin/orders', label: 'Orders', icon: 'shopping_cart', color: 'pink' },
-    { path: '/admin/deposits', label: 'Deposits', icon: 'payments', color: 'green' },
-    { path: '/admin/bank-settings', label: 'Bank API', icon: 'account_balance', color: 'blue' },
+    { path: '/admin', label: t('admin.sidebar.dashboard'), icon: 'dashboard', color: 'slate' },
+    { path: '/admin/users', label: t('admin.sidebar.users'), icon: 'group', color: 'slate' },
+    { path: '/admin/products', label: t('admin.sidebar.products'), icon: 'inventory_2', color: 'blue' },
+    { path: '/admin/orders', label: t('admin.sidebar.orders'), icon: 'shopping_cart', color: 'pink' },
+    { path: '/admin/deposits', label: t('admin.sidebar.deposits'), icon: 'payments', color: 'green' },
+    { path: '/admin/bank-settings', label: t('admin.sidebar.bankSettings'), icon: 'account_balance', color: 'blue' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -40,7 +42,9 @@ export default function AdminSidebar() {
         <div className="size-8 text-primary bg-primary/10 rounded-lg flex items-center justify-center neon-border-cyan">
           <span className="material-symbols-outlined text-sm">bolt</span>
         </div>
-        <h2 className="text-xl font-bold tracking-tight">Admin<span className="text-primary">Panel</span></h2>
+        <h2 className="text-xl font-bold tracking-tight">
+          {t('admin.sidebar.brandPrefix')}<span className="text-primary">{t('admin.sidebar.brandSuffix')}</span>
+        </h2>
       </Link>
 
       {profile && (
@@ -68,7 +72,7 @@ export default function AdminSidebar() {
         className="flex w-full items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition-all"
       >
         <span className="material-symbols-outlined">logout</span>
-        Logout
+        {t('admin.sidebar.logout')}
       </button>
     </aside>
   );

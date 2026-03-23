@@ -3,14 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import AdminSidebar from '../components/AdminSidebar';
-
-function formatVnd(amount) {
-  return new Intl.NumberFormat('vi-VN').format(amount ?? 0) + ' ₫';
-}
+import { useTranslation } from 'react-i18next';
 
 export default function AdminDeposits() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+
+  const formatVnd = (amount) => {
+    return new Intl.NumberFormat(i18n.language === 'vi' ? 'vi-VN' : 'en-US').format(amount ?? 0) + (i18n.language === 'vi' ? ' ₫' : ' VND');
+  };
   
   const [deposits, setDeposits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +94,7 @@ export default function AdminDeposits() {
   }, [deposits, hasStatusColumn]);
 
   const updateStatus = async (id, newStatus, currentAmount, userId) => {
-    if (!window.confirm(`Are you sure you want to mark this as ${newStatus}?`)) return;
+    if (!window.confirm(t('admin.deposits.approveConfirm', { status: newStatus }))) return;
     try {
       // 1. Update status
       const { error: updError } = await supabase
@@ -117,7 +119,7 @@ export default function AdminDeposits() {
       setDeposits(deposits.map(d => d.id === id ? { ...d, status: newStatus } : d));
     } catch (err) {
       console.error('Error updating status:', err);
-      alert('Failed to update status. Please try again.');
+      alert(t('admin.deposits.updateError'));
     }
   };
 
@@ -139,8 +141,8 @@ export default function AdminDeposits() {
         
         <header className="flex justify-between items-center mb-10 relative z-10">
           <div>
-            <h1 className="text-3xl font-black tracking-tight mb-2">Deposit Management</h1>
-            <p className="text-slate-400 text-sm">Review incoming cash flow and approve requests.</p>
+            <h1 className="text-3xl font-black tracking-tight mb-2">{t('admin.deposits.title')}</h1>
+            <p className="text-slate-400 text-sm">{t('admin.deposits.subtitle')}</p>
           </div>
         </header>
 
@@ -149,7 +151,7 @@ export default function AdminDeposits() {
           <div className="glass-panel p-6 rounded-2xl border-slate-800 flex flex-col gap-4 relative overflow-hidden group">
              <div className="absolute -inset-4 bg-gradient-to-tr from-green-500/10 to-transparent blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
              <div className="flex items-center justify-between relative z-10">
-               <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Today's Inflow</span>
+               <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">{t('admin.deposits.todayInflow')}</span>
                <span className="material-symbols-outlined text-green-400">today</span>
              </div>
              <span className="text-4xl font-black relative z-10 text-green-400">
@@ -158,14 +160,14 @@ export default function AdminDeposits() {
           </div>
           <div className="glass-panel p-6 rounded-2xl border-slate-800 flex flex-col gap-4 relative overflow-hidden group">
              <div className="flex items-center justify-between relative z-10">
-               <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Pending</span>
+               <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">{t('admin.deposits.pending')}</span>
                <span className="material-symbols-outlined text-yellow-400">pending_actions</span>
              </div>
              <span className="text-4xl font-black relative z-10 text-yellow-400">{stats.pending}</span>
           </div>
           <div className="glass-panel p-6 rounded-2xl border-slate-800 flex flex-col gap-4 relative overflow-hidden group">
              <div className="flex items-center justify-between relative z-10">
-               <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Completed</span>
+               <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">{t('admin.deposits.completed')}</span>
                <span className="material-symbols-outlined text-primary">task_alt</span>
              </div>
              <span className="text-4xl font-black relative z-10 text-primary">{stats.completed}</span>
@@ -178,7 +180,7 @@ export default function AdminDeposits() {
                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
                <input 
                  type="text" 
-                 placeholder="Search user or email..." 
+                 placeholder={t('admin.deposits.searchPlaceholder')} 
                  value={searchTerm}
                  onChange={(e) => setSearchTerm(e.target.value)}
                  className="w-full bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary outline-none text-white placeholder-slate-500"
@@ -186,7 +188,7 @@ export default function AdminDeposits() {
             </div>
             {!hasStatusColumn && (
                <span className="text-xs text-yellow-500 bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20">
-                 Note: 'status' column not found in DB. Read-only mode.
+                 {t('admin.deposits.statusNotFound')}
                </span>
             )}
             <button onClick={fetchDeposits} className="p-2 text-slate-400 hover:text-white transition-colors" title="Refresh">
@@ -203,11 +205,11 @@ export default function AdminDeposits() {
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="text-xs uppercase bg-slate-800/40 text-slate-400 font-bold tracking-wider">
                   <tr>
-                    <th className="px-6 py-4">User</th>
-                    <th className="px-6 py-4">Amount</th>
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <th className="px-6 py-4">{t('admin.deposits.user')}</th>
+                    <th className="px-6 py-4">{t('admin.deposits.amount')}</th>
+                    <th className="px-6 py-4">{t('admin.deposits.date')}</th>
+                    <th className="px-6 py-4">{t('admin.deposits.status')}</th>
+                    <th className="px-6 py-4 text-right">{t('admin.deposits.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
@@ -237,20 +239,20 @@ export default function AdminDeposits() {
                               d.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/30' : 
                               'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'}`}
                           >
-                            {d.status}
+                            {t(`common.status.${d.status}`)}
                           </span>
                         ) : (
-                          <span className="px-2 py-1 rounded bg-slate-800 text-slate-400 text-[10px] font-bold uppercase">No Status</span>
+                          <span className="px-2 py-1 rounded bg-slate-800 text-slate-400 text-[10px] font-bold uppercase">{t('common.status.unknown')}</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         {hasStatusColumn && d.status === 'pending' ? (
                            <div className="flex items-center justify-end gap-2">
                              <button onClick={() => updateStatus(d.id, 'completed', d.amount, d.user_id)} className="bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-white border border-green-500/50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">
-                               Approve
+                               {t('admin.deposits.approve')}
                              </button>
                              <button onClick={() => updateStatus(d.id, 'rejected', d.amount, d.user_id)} className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">
-                               Reject
+                               {t('admin.deposits.reject')}
                              </button>
                            </div>
                         ) : (
@@ -261,7 +263,7 @@ export default function AdminDeposits() {
                   ))}
                   {filteredDeposits.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="px-6 py-8 text-center text-slate-500">No deposits found.</td>
+                      <td colSpan="5" className="px-6 py-8 text-center text-slate-500">{t('admin.deposits.noDeposits')}</td>
                     </tr>
                   )}
                 </tbody>

@@ -11,7 +11,7 @@ const EXCHANGE_RATE_VND_TO_USD = 25000;
 
 
 
-function formatPrice(priceVnd, currency) {
+function formatPrice(priceVnd, currency, lng = 'vi') {
   if (currency === 'usd') {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -21,7 +21,7 @@ function formatPrice(priceVnd, currency) {
     }).format(priceVnd / EXCHANGE_RATE_VND_TO_USD);
   }
 
-  return `${new Intl.NumberFormat('vi-VN').format(priceVnd)} VND`;
+  return new Intl.NumberFormat(lng === 'vi' ? 'vi-VN' : 'en-US').format(priceVnd) + (lng === 'vi' ? ' VND' : ' VND');
 }
 
 function getPlanPlacementClass(index, totalPlans) {
@@ -95,12 +95,12 @@ export default function Home() {
             stock_count: p.stock_count,
             image_url: p.image_url,
             delivery_type: p.delivery_type,
-            unitLabel: p.delivery_type === 'manual' ? 'slot' : 'account',
-            warranty: 'Warranty included',
+            unitLabel: p.delivery_type === 'manual' ? t('pricing.slot') : t('pricing.account'),
+            warranty: t('pricing.warranty'),
             isFeatured: p.delivery_type === 'manual',
             notes: p.description
               ? p.description.split(',').map((s) => s.trim()).filter(Boolean)
-              : ['Instant Delivery', 'Premium Support'],
+              : [t('pricing.instantDelivery'), t('pricing.premiumSupport')],
           }));
 
           if (isMounted) {
@@ -146,7 +146,7 @@ export default function Home() {
             </div>
             
             <h1 className="text-5xl lg:text-7xl font-black leading-[1.1] tracking-tight text-white">
-              {t('hero.title1')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-neon-purple">premium</span> {t('hero.title2')}
+              {t('hero.title1')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-neon-purple">{t('hero.premium')}</span> {t('hero.title2')}
             </h1>
             
             <p className="text-lg text-slate-400 max-w-lg leading-relaxed">
@@ -176,11 +176,11 @@ export default function Home() {
                     <span className="material-symbols-outlined text-neon-cyan">verified_user</span>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Status</p>
-                    <p className="text-sm font-bold text-white uppercase tracking-wider">Account Active</p>
+                    <p className="text-xs text-slate-400">{t('hero.status')}</p>
+                    <p className="text-sm font-bold text-white uppercase tracking-wider">{t('hero.accountActive')}</p>
                   </div>
                 </div>
-                <span className="text-neon-cyan text-xs font-mono font-bold">1ms RESPONSE</span>
+                <span className="text-neon-cyan text-xs font-mono font-bold">{t('hero.response')}</span>
               </div>
             </div>
           </div>
@@ -192,10 +192,10 @@ export default function Home() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
         <div className="text-center mb-16">
           <h2 className="text-4xl font-black text-white mb-4 tracking-tight">
-            Business <span className="text-primary">Pricing</span>
+            {t('pricing.titleBusiness')} <span className="text-primary">{t('pricing.titlePricing')}</span>
           </h2>
           <p className="text-slate-400 mb-6">
-            All prices are monthly packages.
+            {t('pricing.subtitle')}
           </p>
 
           <div className="inline-flex glass rounded-xl border border-white/10 p-1">
@@ -243,21 +243,21 @@ export default function Home() {
             >
               {plan.isFeatured && (
                 <span className="absolute top-0 right-0 bg-neon-purple text-white text-[10px] font-black px-4 py-1 rounded-bl-xl tracking-tighter uppercase">
-                  {i18n.language === 'vi' ? 'Khuyên dùng' : 'Recommended'}
+                  {t('pricing.recommended')}
                 </span>
               )}
 
               <h4 className="text-white font-black text-lg tracking-tight mb-1">{plan.name}</h4>
               <p className="text-xs uppercase tracking-widest text-slate-400 mb-4">
-                {plan.warranty === 'No warranty' && i18n.language === 'vi' ? 'Không bảo hành' : plan.warranty}
+                {plan.warranty === 'No warranty' ? t('pricing.noWarranty') : plan.warranty}
               </p>
 
               <div className="mb-5">
                 <p className="text-3xl font-black text-primary leading-none">
-                  {formatPrice(plan.priceVnd, currency)}
+                  {formatPrice(plan.priceVnd, currency, i18n.language)}
                 </p>
                 <p className="text-slate-400 text-sm mt-2">
-                  /1 {plan.unitLabel} {i18n.language === 'vi' ? '/tháng' : '/month'}
+                  /1 {plan.unitLabel} {t('pricing.monthly')}
                 </p>
               </div>
 
@@ -274,7 +274,7 @@ export default function Home() {
                 onClick={() => handleBuyClick(plan)}
                 className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:scale-[1.02] transition-all neon-border-cyan"
               >
-                {i18n.language === 'vi' ? 'Mua ngay' : 'Buy Monthly Plan'}
+                {t('pricing.buyMonthly')}
               </button>
             </article>
             ))

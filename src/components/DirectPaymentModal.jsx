@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-
-function formatVnd(amount) {
-  return new Intl.NumberFormat('vi-VN').format(amount ?? 0) + ' ₫';
-}
+import { useTranslation, Trans } from 'react-i18next';
 
 export default function DirectPaymentModal({ isOpen, onClose, plan, userId, profile }) {
+  const { t, i18n } = useTranslation();
   const [bankInfo, setBankInfo] = useState({ account_number: '0000000000', account_name: 'CHUA CAI DAT TEN' });
+
+  const formatVnd = (amount) => {
+    return new Intl.NumberFormat(i18n.language === 'vi' ? 'vi-VN' : 'en-US').format(amount ?? 0) + (i18n.language === 'vi' ? ' ₫' : ' VND');
+  };
   const [pendingRequest, setPendingRequest] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -105,7 +107,7 @@ export default function DirectPaymentModal({ isOpen, onClose, plan, userId, prof
 
     } catch (err) {
       console.error("Error initiating payment:", err);
-      alert("Có lỗi xảy ra khi tạo thanh toán: " + err.message);
+      alert(t('purchase.direct.createError') + err.message);
       onClose();
     } finally {
       setIsCreating(false);
@@ -130,7 +132,7 @@ export default function DirectPaymentModal({ isOpen, onClose, plan, userId, prof
         
         <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
           <h3 className="font-bold text-white tracking-wide">
-            {success ? 'Thanh toán thành công' : 'Thanh toán Gói'}
+            {success ? t('purchase.direct.successTitle') : t('purchase.direct.title')}
           </h3>
           <button onClick={handleClose} className="text-slate-400 hover:text-white transition-colors">
             <span className="material-symbols-outlined">close</span>
@@ -141,28 +143,36 @@ export default function DirectPaymentModal({ isOpen, onClose, plan, userId, prof
           {isCreating ? (
             <div className="flex flex-col items-center gap-4 py-10">
               <span className="material-symbols-outlined animate-spin text-4xl text-primary">sync</span>
-              <p className="text-slate-400 text-sm">Đang tạo phiên giao dịch...</p>
+              <p className="text-slate-400 text-sm">{t('purchase.direct.creating')}</p>
             </div>
           ) : success ? (
              <div className="flex flex-col items-center gap-4 py-6">
                 <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 border border-green-500/30">
                   <span className="material-symbols-outlined text-4xl">check_circle</span>
                 </div>
-                <h2 className="text-2xl font-black text-white">Thanh toán hoàn tất!</h2>
+                <h2 className="text-2xl font-black text-white">{t('purchase.direct.successTitle')}!</h2>
                 <p className="text-slate-400 text-sm max-w-[250px]">
-                  Cảm ơn bạn đã mua gói <span className="text-primary font-bold">{plan?.name}</span>. Tài khoản của bạn đã được nâng cấp.
+                  <Trans 
+                    i18nKey="purchase.direct.successDesc"
+                    values={{ name: plan?.name }}
+                    components={{ b: <span className="text-primary font-bold" /> }}
+                  />
                 </p>
                 <button 
                   onClick={handleClose}
                   className="mt-6 bg-primary text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-500 transition-colors"
                 >
-                  Xong
+                  {t('purchase.direct.doneBtn')}
                 </button>
              </div>
           ) : pendingRequest ? (
             <div className="w-full flex flex-col items-center">
               <p className="text-slate-400 text-sm mb-4">
-                Mua gói <span className="font-bold text-white">{plan?.name}</span> ({formatVnd(plan?.priceVnd)})
+                <Trans 
+                  i18nKey="purchase.direct.buyInfo"
+                  values={{ name: plan?.name, price: formatVnd(plan?.priceVnd) }}
+                  components={{ b: <span className="font-bold text-white" /> }}
+                />
               </p>
               
               {vietQrUrl && (
@@ -173,23 +183,23 @@ export default function DirectPaymentModal({ isOpen, onClose, plan, userId, prof
 
               <div className="w-full bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-left space-y-3 text-sm">
                 <div className="flex justify-between border-b border-slate-800 pb-2">
-                  <span className="text-slate-400">Ngân hàng:</span>
+                  <span className="text-slate-400">{t('purchase.direct.bank')}:</span>
                   <span className="font-bold text-white">Vietcombank</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-800 pb-2">
-                  <span className="text-slate-400">Số TK:</span>
+                  <span className="text-slate-400">{t('purchase.direct.accountNo')}:</span>
                   <span className="font-bold text-white tracking-widest">{bankInfo?.account_number}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-800 pb-2">
-                  <span className="text-slate-400">Chủ TK:</span>
+                  <span className="text-slate-400">{t('purchase.direct.accountName')}:</span>
                   <span className="font-bold text-white uppercase">{bankInfo?.account_name}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-800 pb-2">
-                  <span className="text-slate-400">Số tiền:</span>
+                  <span className="text-slate-400">{t('purchase.direct.amount')}:</span>
                   <span className="font-black text-primary">{formatVnd(pendingRequest.expected_amount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Nội dung:</span>
+                  <span className="text-slate-400">{t('purchase.direct.content')}:</span>
                   <span className="font-black text-neon-purple tracking-widest">{pendingRequest.deposit_code}</span>
                 </div>
               </div>
@@ -197,10 +207,10 @@ export default function DirectPaymentModal({ isOpen, onClose, plan, userId, prof
               <div className="mt-6 flex flex-col items-center gap-2">
                 <p className="text-xs text-slate-400 flex items-center gap-2">
                   <span className="material-symbols-outlined animate-spin text-sm text-primary">sync</span>
-                  Đang chờ thanh toán tự động...
+                  {t('purchase.direct.waiting')}
                 </p>
                 <p className="text-[10px] text-red-400 italic">
-                  * Hệ thống sẽ tự động xác nhận trong vòng 10-30 giây sau khi chuyển khoản.
+                  {t('purchase.direct.autoConfirmNote')}
                 </p>
               </div>
             </div>

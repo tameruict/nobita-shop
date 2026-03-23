@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import AdminSidebar from '../components/AdminSidebar';
 
 export default function AdminBankSettings() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   
@@ -40,7 +42,7 @@ export default function AdminBankSettings() {
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
-      setMsg({ type: 'error', text: 'Không thể tải cấu hình.' });
+      setMsg({ type: 'error', text: t('admin.bank.messages.loadError') });
     } finally {
       setLoading(false);
     }
@@ -69,11 +71,11 @@ export default function AdminBankSettings() {
         
       if (error) throw error;
       
-      setMsg({ type: 'success', text: 'Lưu cấu hình thành công!' });
+      setMsg({ type: 'success', text: t('admin.bank.messages.saveSuccess') });
       fetchSettings(); // Refresh timestamp
     } catch (error) {
       console.error('Save error:', error);
-      setMsg({ type: 'error', text: 'Lỗi khi lưu cấu hình.' });
+      setMsg({ type: 'error', text: t('admin.bank.messages.saveError') });
     } finally {
       setSaving(false);
     }
@@ -91,8 +93,8 @@ export default function AdminBankSettings() {
         
         <header className="flex justify-between items-center mb-10 relative z-10">
           <div>
-             <h1 className="text-3xl font-black tracking-tight mb-2">Thông Tin Tài Khoản VIETIN BANK</h1>
-             <p className="text-slate-400 text-sm">Tổng quan &gt; Danh Sách Tài Khoản &gt; <span className="text-blue-400">Cấu hình API</span></p>
+             <h1 className="text-3xl font-black tracking-tight mb-2">{t('admin.bank.pageTitle')}</h1>
+             <p className="text-slate-400 text-sm">{t('admin.bank.breadcrumb')}</p>
           </div>
         </header>
 
@@ -111,36 +113,36 @@ export default function AdminBankSettings() {
                 )}
 
                 <div>
-                   <label className="block text-sm font-bold text-slate-300 mb-2">Tên tài khoản VIETIN BANK:</label>
+                   <label className="block text-sm font-bold text-slate-300 mb-2">{t('admin.bank.accountNameLabel')}</label>
                    <input
                      type="text"
                      value={accountName}
                      onChange={(e) => setAccountName(e.target.value)}
                      className="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50"
-                     placeholder="Ví dụ: NGUYEN VAN A"
+                     placeholder={t('admin.bank.accountNamePlaceholder')}
                    />
                 </div>
 
                 <div>
-                   <label className="block text-sm font-bold text-slate-300 mb-2">Số tài khoản VIETIN BANK:</label>
+                   <label className="block text-sm font-bold text-slate-300 mb-2">{t('admin.bank.accountNumberLabel')}</label>
                    <input
                      type="text"
                      value={accountNumber}
                      onChange={(e) => setAccountNumber(e.target.value)}
                      className="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50"
-                     placeholder="Ví dụ: 107882860742"
+                     placeholder={t('admin.bank.accountNumberPlaceholder')}
                    />
                 </div>
 
                 <div>
-                   <label className="block text-sm font-bold text-slate-300 mb-2">Token API:</label>
+                   <label className="block text-sm font-bold text-slate-300 mb-2">{t('admin.bank.tokenLabel')}</label>
                    <div className="flex relative">
                      <input
                        type="text"
                        value={apiToken}
                        onChange={(e) => setApiToken(e.target.value)}
                        className="w-full bg-slate-900 border border-slate-700/60 rounded-l-xl rounded-r-none px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50"
-                       placeholder="Nhập Token API (thueapibank.vn)"
+                       placeholder={t('admin.bank.tokenPlaceholder')}
                      />
                      <button type="button" className="bg-green-600 hover:bg-green-500 px-4 rounded-r-xl flex items-center justify-center transition-colors">
                         <span className="material-symbols-outlined text-white text-lg">content_copy</span>
@@ -149,9 +151,9 @@ export default function AdminBankSettings() {
                 </div>
 
                 <div>
-                   <label className="block text-sm font-bold text-slate-300 mb-2">Cập nhật lần cuối:</label>
+                   <label className="block text-sm font-bold text-slate-300 mb-2">{t('admin.bank.lastUpdated')}</label>
                    <div className="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-4 py-3 text-slate-400">
-                     {lastUpdated || 'Chưa cập nhật'}
+                     {lastUpdated || t('admin.bank.notUpdated')}
                    </div>
                 </div>
 
@@ -161,10 +163,10 @@ export default function AdminBankSettings() {
                     disabled={saving}
                     className="flex-1 bg-pink-500 hover:bg-pink-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_15px_rgba(236,72,153,0.3)] disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {saving ? <span className="material-symbols-outlined animate-spin">sync</span> : 'Lưu Cấu Hình'}
+                    {saving ? <span className="material-symbols-outlined animate-spin">sync</span> : t('admin.bank.saveButton')}
                   </button>
                   <Link to="/admin" className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl transition-all text-center border border-slate-700">
-                     Quay lại
+                     {t('admin.bank.backButton')}
                   </Link>
                 </div>
 

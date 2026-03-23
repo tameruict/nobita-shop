@@ -16,21 +16,22 @@ const STATUS_STYLES = {
   failed: 'bg-red-500/15 text-red-400 border border-red-500/30',
 }
 
-function formatVnd(amount) {
-  return new Intl.NumberFormat('vi-VN').format(amount ?? 0) + ' ₫'
+function formatVnd(amount, lng = 'vi') {
+  return new Intl.NumberFormat(lng === 'vi' ? 'vi-VN' : 'en-US').format(amount ?? 0) + (lng === 'vi' ? ' ₫' : ' VND')
 }
 
 function StatusBadge({ status }) {
+  const { t } = useTranslation()
   const className = STATUS_STYLES[status] || STATUS_STYLES.pending
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${className}`}>
-      {status?.replace(/_/g, ' ')}
+      {t(`common.status.${status}`)}
     </span>
   )
 }
 
 export default function Profile() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { session, profile, refreshProfile } = useAuth()
 
   const [orders, setOrders] = useState([])
@@ -51,18 +52,18 @@ export default function Profile() {
 
   const handleSaveServiceConfig = async () => {
     if (!chatgptGmailInput || !chatgptGmailInput.includes('@')) {
-      alert('Vui lòng nhập Email hợp lệ.')
+      alert(t('profile.alerts.invalidEmail'))
       return
     }
     setSavingConfig(true)
     try {
       const { error } = await supabase.from('profiles').update({ chatgpt_gmail: chatgptGmailInput }).eq('id', session?.user?.id)
       if (error) throw error
-      alert('Cập nhật cấu hình dịch vụ thành công!')
+      alert(t('profile.alerts.updateSuccess'))
       if (refreshProfile) await refreshProfile()
     } catch (err) {
       console.error('Update service config error:', err)
-      alert('Có lỗi xảy ra, vui lòng thử lại sau.')
+      alert(t('profile.alerts.updateError'))
     } finally {
       setSavingConfig(false)
     }
@@ -128,7 +129,7 @@ export default function Profile() {
   }, [fetchOrders, fetchWalletSummary])
 
   const joinDate = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    ? new Date(profile.created_at).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : '—'
 
   const avatarLetter = (profile?.full_name || profile?.email || 'U').charAt(0).toUpperCase()
@@ -171,15 +172,15 @@ export default function Profile() {
             <div className="space-y-2 text-sm mt-2">
               <div className="flex items-center gap-2 text-slate-400">
                 <span className="material-symbols-outlined text-base">calendar_month</span>
-                <span>Joined {joinDate}</span>
+                <span>{t('profile.joined')} {joinDate}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-400">
+               <div className="flex items-center gap-2 text-slate-400">
                 <span className="material-symbols-outlined text-base">badge</span>
-                <span className="capitalize">Role: <span className={profile?.role === 'admin' ? 'text-primary font-bold' : 'text-slate-300'}>{profile?.role || 'user'}</span></span>
+                <span className="capitalize">{t('profile.role')}: <span className={profile?.role === 'admin' ? 'text-primary font-bold' : 'text-slate-300'}>{profile?.role || 'user'}</span></span>
               </div>
-              <div className="flex items-center gap-2">
+               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-base text-green-400">fiber_manual_record</span>
-                <span className="text-green-400 text-xs font-bold uppercase">Active</span>
+                <span className="text-green-400 text-xs font-bold uppercase">{t('common.active', 'Active')}</span>
               </div>
             </div>
           </div>
@@ -187,40 +188,40 @@ export default function Profile() {
           {/* Balance stats — 3 cards */}
           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Current Balance */}
-            <div className="glass-panel rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden group">
+             <div className="glass-panel rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden group">
               <div className="absolute -inset-2 bg-gradient-to-tr from-primary/10 to-transparent blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="flex items-center justify-between relative z-10">
-                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Balance</span>
+                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">{t('profile.balance')}</span>
                 <span className="material-symbols-outlined text-primary text-lg">account_balance_wallet</span>
               </div>
-              <p className="text-2xl font-black text-primary relative z-10">{formatVnd(profile?.balance)}</p>
+              <p className="text-2xl font-black text-primary relative z-10">{formatVnd(profile?.balance, i18n.language)}</p>
             </div>
 
             {/* Total Topped Up */}
-            <div className="glass-panel rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden group">
+             <div className="glass-panel rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden group">
               <div className="absolute -inset-2 bg-gradient-to-tr from-green-500/10 to-transparent blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="flex items-center justify-between relative z-10">
-                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Total Topped Up</span>
+                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">{t('profile.totalToppedUp')}</span>
                 <span className="material-symbols-outlined text-green-400 text-lg">trending_up</span>
               </div>
               {loadingWallet ? (
                 <div className="h-8 w-24 rounded-lg bg-slate-700/50 animate-pulse" />
               ) : (
-                <p className="text-2xl font-black text-green-400 relative z-10">{formatVnd(totalTopup)}</p>
+                <p className="text-2xl font-black text-green-400 relative z-10">{formatVnd(totalTopup, i18n.language)}</p>
               )}
             </div>
 
             {/* Total Spent */}
-            <div className="glass-panel rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden group">
+             <div className="glass-panel rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden group">
               <div className="absolute -inset-2 bg-gradient-to-tr from-neon-purple/10 to-transparent blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="flex items-center justify-between relative z-10">
-                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Total Spent</span>
+                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">{t('profile.totalSpent')}</span>
                 <span className="material-symbols-outlined text-neon-purple text-lg">shopping_bag</span>
               </div>
               {loadingWallet ? (
                 <div className="h-8 w-24 rounded-lg bg-slate-700/50 animate-pulse" />
               ) : (
-                <p className="text-2xl font-black text-neon-purple relative z-10">{formatVnd(totalSpent)}</p>
+                <p className="text-2xl font-black text-neon-purple relative z-10">{formatVnd(totalSpent, i18n.language)}</p>
               )}
             </div>
           </div>
@@ -231,20 +232,20 @@ export default function Profile() {
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
           <div className="flex items-center gap-3 mb-5">
             <span className="material-symbols-outlined text-cyan-400">settings_applications</span>
-            <h2 className="text-xl font-black tracking-tight text-white">{t('profile.serviceConfig', 'Cấu hình dịch vụ')}</h2>
+            <h2 className="text-xl font-black tracking-tight text-white">{t('profile.serviceConfig')}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-slate-900/40 p-5 rounded-xl border border-slate-800/50">
-              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+               <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <span className="material-symbols-outlined text-base">mail</span>
-                Gmail nhận quyền dịch vụ (Manual)
+                {t('profile.gmailLabel')}
               </label>
               <div className="flex flex-col sm:flex-row gap-3">
-                <input
+                 <input
                   type="email"
                   value={chatgptGmailInput}
                   onChange={(e) => setChatgptGmailInput(e.target.value)}
-                  placeholder="Nhập email ưu tiên của bạn..."
+                  placeholder={t('profile.gmailPlaceholder')}
                   className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-cyan-400 transition-colors placeholder:text-slate-600"
                 />
                 <button
@@ -256,14 +257,14 @@ export default function Profile() {
                     <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[18px]">save</span>
-                      Lưu lại
+                       <span className="material-symbols-outlined text-[18px]">save</span>
+                      {t('common.save')}
                     </>
                   )}
                 </button>
               </div>
-              <p className="mt-3 text-xs text-slate-500 leading-relaxed">
-                * Email này sẽ được dùng mặc định để Admin cấp quyền cho các dịch vụ được xử lý thủ công (Manual Delivery). Vui lòng đảm bảo bạn nhập đúng địa chỉ.
+               <p className="mt-3 text-xs text-slate-500 leading-relaxed">
+                {t('profile.gmailHint')}
               </p>
             </div>
           </div>
@@ -279,14 +280,14 @@ export default function Profile() {
               <h2 className="text-lg font-black tracking-tight">
                 {t('profile.orderHistory', 'Order History')}
               </h2>
-            </div>
-            <span className="text-xs text-slate-500 font-mono">{orders.length} order{orders.length !== 1 ? 's' : ''}</span>
+             </div>
+            <span className="text-xs text-slate-500 font-mono">{t('profile.ordersCount', { count: orders.length })}</span>
           </div>
 
           {loadingOrders ? (
-            <div className="flex flex-col items-center py-16 gap-4 text-primary">
+             <div className="flex flex-col items-center py-16 gap-4 text-primary">
               <span className="material-symbols-outlined animate-spin text-4xl">sync</span>
-              <p className="text-sm text-slate-400">Loading orders…</p>
+              <p className="text-sm text-slate-400">{t('profile.loadingOrders')}</p>
             </div>
           ) : orders.length === 0 ? (
             // Empty state
@@ -294,16 +295,16 @@ export default function Profile() {
               <div className="w-20 h-20 rounded-full bg-slate-800/50 flex items-center justify-center">
                 <span className="material-symbols-outlined text-4xl text-slate-600">shopping_cart</span>
               </div>
-              <div className="text-center">
-                <p className="text-white font-bold text-lg mb-1">{t('profile.noOrders', 'No orders yet')}</p>
-                <p className="text-slate-400 text-sm">Your purchase history will appear here.</p>
+               <div className="text-center">
+                <p className="text-white font-bold text-lg mb-1">{t('profile.noOrders')}</p>
+                <p className="text-slate-400 text-sm">{t('profile.noOrdersDesc')}</p>
               </div>
               <Link
                 to="/#pricing"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/80 neon-border-cyan transition-all text-sm"
               >
-                <span className="material-symbols-outlined text-base">storefront</span>
-                Browse Plans
+                 <span className="material-symbols-outlined text-base">storefront</span>
+                {t('profile.browsePlans')}
               </Link>
             </div>
           ) : (
@@ -324,10 +325,10 @@ export default function Profile() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-bold text-white text-sm truncate mr-4">
-                            {order.products?.name || 'Sản phẩm'}
+                            {order.products?.name || t('common.product')}
                           </p>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {new Date(order.created_at).toLocaleDateString('vi-VN', {
+                           <p className="text-xs text-slate-400 mt-0.5">
+                            {new Date(order.created_at).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US', {
                               year: 'numeric', month: 'short', day: 'numeric',
                               hour: '2-digit', minute: '2-digit'
                             })}
@@ -336,8 +337,8 @@ export default function Profile() {
                       </div>
 
                       <div className="flex items-center gap-4 flex-shrink-0 self-end sm:self-auto">
-                        <StatusBadge status={order.status} />
-                        <p className="font-black text-primary text-sm">{formatVnd(order.total_amount || order.amount)}</p>
+                         <StatusBadge status={order.status} />
+                        <p className="font-black text-primary text-sm">{formatVnd(order.total_amount || order.amount, i18n.language)}</p>
                         <span className={`material-symbols-outlined text-slate-400 text-base transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
                           expand_more
                         </span>
@@ -348,16 +349,16 @@ export default function Profile() {
                     {isExpanded && (
                       <div className="px-6 pb-5 bg-slate-900/40 animate-in slide-in-from-top-1">
                         <div className="p-4 bg-slate-800/50 border border-slate-700/40 rounded-xl space-y-3">
-                           <div className="flex flex-col gap-1">
-                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Chi tiết / Thông tin bàn giao</span>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">{t('profile.orderDetails')}</span>
                               <div className="text-white text-sm bg-slate-900/80 p-3 rounded-lg border border-slate-700/50 font-mono break-words whitespace-pre-wrap">
-                                 {order.delivery_data || order.extra_info || 'Đang chờ xử lý...'}
+                                 {order.delivery_data || order.extra_info || t('profile.waitingDelivery')}
                               </div>
                            </div>
                            {order.status === 'completed' && (
-                             <p className="text-xs text-green-400 flex items-center gap-1">
+                              <p className="text-xs text-green-400 flex items-center gap-1">
                                <span className="material-symbols-outlined text-sm">verified</span>
-                               Đơn hàng đã được bàn giao thành công.
+                               {t('profile.deliverySuccess')}
                              </p>
                            )}
                         </div>
